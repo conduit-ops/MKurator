@@ -50,28 +50,41 @@ metadata:
 }
 
 // waitForControllerAndWebhookReady blocks until cert-manager has issued the webhook
-// TLS secret and the controller-manager pod reports Ready (webhook listener up).
+// TLS secret, the controller-manager is rolled out, and the webhook Service has endpoints.
 func waitForControllerAndWebhookReady() {
+	Eventually(func(g Gomega) {
+		cmd := exec.Command("kubectl", "get", "certificate", "kurator-serving-cert", "-n", namespace,
+			"-o", "jsonpath={.status.conditions[?(@.type=='Ready')].status}")
+		out, err := utils.Run(cmd)
+		g.Expect(err).NotTo(HaveOccurred(), "serving Certificate should exist")
+		g.Expect(out).To(Equal("True"), "serving Certificate should be Ready")
+	}).WithTimeout(5 * time.Minute).WithPolling(2 * time.Second).Should(Succeed())
+
 	Eventually(func(g Gomega) {
 		cmd := exec.Command("kubectl", "get", "secret", "webhook-server-cert", "-n", namespace)
 		_, err := utils.Run(cmd)
 		g.Expect(err).NotTo(HaveOccurred(), "webhook-server-cert should exist")
 	}).WithTimeout(3 * time.Minute).WithPolling(2 * time.Second).Should(Succeed())
 
+	cmd := exec.Command("kubectl", "rollout", "status", "deployment/kurator-controller-manager",
+		"-n", namespace, "--timeout=5m")
+	_, err := utils.Run(cmd)
+	Expect(err).NotTo(HaveOccurred(), "controller-manager rollout should complete")
+
 	Eventually(func(g Gomega) {
 		cmd := exec.Command("kubectl", "get", "pods", "-n", namespace,
 			"-l", "control-plane=controller-manager",
 			"-o", "jsonpath={.items[0].status.conditions[?(@.type=='Ready')].status}")
-		out, err := utils.Run(cmd)
-		g.Expect(err).NotTo(HaveOccurred())
+		out, runErr := utils.Run(cmd)
+		g.Expect(runErr).NotTo(HaveOccurred())
 		g.Expect(out).To(Equal("True"), "controller-manager should be Ready")
 	}).WithTimeout(5 * time.Minute).WithPolling(2 * time.Second).Should(Succeed())
 
 	Eventually(func(g Gomega) {
 		cmd := exec.Command("kubectl", "get", "endpoints", "kurator-webhook-service", "-n", namespace,
 			"-o", "jsonpath={.subsets[0].addresses[0].ip}")
-		out, err := utils.Run(cmd)
-		g.Expect(err).NotTo(HaveOccurred())
+		out, runErr := utils.Run(cmd)
+		g.Expect(runErr).NotTo(HaveOccurred())
 		g.Expect(out).NotTo(BeEmpty(), "webhook service should have endpoints")
 	}).WithTimeout(5 * time.Minute).WithPolling(2 * time.Second).Should(Succeed())
 }
