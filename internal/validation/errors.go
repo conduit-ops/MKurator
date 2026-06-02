@@ -31,6 +31,18 @@ func ChannelInvalid(name string, errs field.ErrorList) error {
 	return invalidObject(gvk, name, errs)
 }
 
+// ChannelAuthRuleInvalid returns an Invalid status error for ChannelAuthRule admission failures.
+func ChannelAuthRuleInvalid(name string, errs field.ErrorList) error {
+	gvk := messagingv1alpha1.GroupVersion.WithKind("ChannelAuthRule")
+	return invalidObject(gvk, name, errs)
+}
+
+// AuthorityRecordInvalid returns an Invalid status error for AuthorityRecord admission failures.
+func AuthorityRecordInvalid(name string, errs field.ErrorList) error {
+	gvk := messagingv1alpha1.GroupVersion.WithKind("AuthorityRecord")
+	return invalidObject(gvk, name, errs)
+}
+
 // QueueManagerConnectionInvalid returns an Invalid status error for QMC admission failures.
 func QueueManagerConnectionInvalid(name string, errs field.ErrorList) error {
 	gvk := messagingv1alpha1.GroupVersion.WithKind("QueueManagerConnection")

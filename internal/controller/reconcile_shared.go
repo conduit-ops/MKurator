@@ -60,6 +60,10 @@ func syncedConditions(obj client.Object) []metav1.Condition {
 		return o.Status.Conditions
 	case *messagingv1alpha1.Channel:
 		return o.Status.Conditions
+	case *messagingv1alpha1.ChannelAuthRule:
+		return o.Status.Conditions
+	case *messagingv1alpha1.AuthorityRecord:
+		return o.Status.Conditions
 	default:
 		return nil
 	}
@@ -97,6 +101,14 @@ func patchSyncedProgressing(
 			metav1.ConditionFalse, messagingv1alpha1.ReasonProgressing, message, generation)
 		return status.Update(ctx, o)
 	case *messagingv1alpha1.Channel:
+		setCondition(&o.Status.Conditions, messagingv1alpha1.ConditionSynced,
+			metav1.ConditionFalse, messagingv1alpha1.ReasonProgressing, message, generation)
+		return status.Update(ctx, o)
+	case *messagingv1alpha1.ChannelAuthRule:
+		setCondition(&o.Status.Conditions, messagingv1alpha1.ConditionSynced,
+			metav1.ConditionFalse, messagingv1alpha1.ReasonProgressing, message, generation)
+		return status.Update(ctx, o)
+	case *messagingv1alpha1.AuthorityRecord:
 		setCondition(&o.Status.Conditions, messagingv1alpha1.ConditionSynced,
 			metav1.ConditionFalse, messagingv1alpha1.ReasonProgressing, message, generation)
 		return status.Update(ctx, o)
@@ -140,6 +152,18 @@ func setSyncedError(
 		if statusErr := status.Update(ctx, o); statusErr != nil {
 			return requeue, statusErr
 		}
+	case *messagingv1alpha1.ChannelAuthRule:
+		setCondition(&o.Status.Conditions, messagingv1alpha1.ConditionSynced,
+			metav1.ConditionFalse, reason, err.Error(), generation)
+		if statusErr := status.Update(ctx, o); statusErr != nil {
+			return requeue, statusErr
+		}
+	case *messagingv1alpha1.AuthorityRecord:
+		setCondition(&o.Status.Conditions, messagingv1alpha1.ConditionSynced,
+			metav1.ConditionFalse, reason, err.Error(), generation)
+		if statusErr := status.Update(ctx, o); statusErr != nil {
+			return requeue, statusErr
+		}
 	default:
 		return ctrl.Result{}, fmt.Errorf("setSyncedError: unsupported type %T", obj)
 	}
@@ -176,6 +200,16 @@ func patchSyncedAvailable(
 			metav1.ConditionTrue, messagingv1alpha1.ReasonAvailable, message, generation)
 		o.Status.ObservedGeneration = generation
 		return status.Update(ctx, o)
+	case *messagingv1alpha1.ChannelAuthRule:
+		setCondition(&o.Status.Conditions, messagingv1alpha1.ConditionSynced,
+			metav1.ConditionTrue, messagingv1alpha1.ReasonAvailable, message, generation)
+		o.Status.ObservedGeneration = generation
+		return status.Update(ctx, o)
+	case *messagingv1alpha1.AuthorityRecord:
+		setCondition(&o.Status.Conditions, messagingv1alpha1.ConditionSynced,
+			metav1.ConditionTrue, messagingv1alpha1.ReasonAvailable, message, generation)
+		o.Status.ObservedGeneration = generation
+		return status.Update(ctx, o)
 	default:
 		return fmt.Errorf("patchSyncedAvailable: unsupported type %T", obj)
 	}
@@ -205,6 +239,14 @@ func patchSyncedDeleting(
 		setCondition(&o.Status.Conditions, messagingv1alpha1.ConditionSynced,
 			metav1.ConditionFalse, messagingv1alpha1.ReasonDeleting, message, generation)
 		return status.Update(ctx, o)
+	case *messagingv1alpha1.ChannelAuthRule:
+		setCondition(&o.Status.Conditions, messagingv1alpha1.ConditionSynced,
+			metav1.ConditionFalse, messagingv1alpha1.ReasonDeleting, message, generation)
+		return status.Update(ctx, o)
+	case *messagingv1alpha1.AuthorityRecord:
+		setCondition(&o.Status.Conditions, messagingv1alpha1.ConditionSynced,
+			metav1.ConditionFalse, messagingv1alpha1.ReasonDeleting, message, generation)
+		return status.Update(ctx, o)
 	default:
 		return fmt.Errorf("patchSyncedDeleting: unsupported type %T", obj)
 	}
@@ -217,6 +259,10 @@ func connectionRefName(obj client.Object) (string, error) {
 	case *messagingv1alpha1.Topic:
 		return o.Spec.ConnectionRef.Name, nil
 	case *messagingv1alpha1.Channel:
+		return o.Spec.ConnectionRef.Name, nil
+	case *messagingv1alpha1.ChannelAuthRule:
+		return o.Spec.ConnectionRef.Name, nil
+	case *messagingv1alpha1.AuthorityRecord:
 		return o.Spec.ConnectionRef.Name, nil
 	default:
 		return "", fmt.Errorf("connectionRefName: unsupported type %T", obj)
@@ -260,6 +306,28 @@ func requestsForConnection(
 			if channelList.Items[i].Spec.ConnectionRef.Name == connName {
 				reqs = append(reqs, reconcile.Request{
 					NamespacedName: types.NamespacedName{Namespace: ns, Name: channelList.Items[i].Name},
+				})
+			}
+		}
+	}
+
+	authRuleList := &messagingv1alpha1.ChannelAuthRuleList{}
+	if err := c.List(ctx, authRuleList, client.InNamespace(ns)); err == nil {
+		for i := range authRuleList.Items {
+			if authRuleList.Items[i].Spec.ConnectionRef.Name == connName {
+				reqs = append(reqs, reconcile.Request{
+					NamespacedName: types.NamespacedName{Namespace: ns, Name: authRuleList.Items[i].Name},
+				})
+			}
+		}
+	}
+
+	authRecList := &messagingv1alpha1.AuthorityRecordList{}
+	if err := c.List(ctx, authRecList, client.InNamespace(ns)); err == nil {
+		for i := range authRecList.Items {
+			if authRecList.Items[i].Spec.ConnectionRef.Name == connName {
+				reqs = append(reqs, reconcile.Request{
+					NamespacedName: types.NamespacedName{Namespace: ns, Name: authRecList.Items[i].Name},
 				})
 			}
 		}

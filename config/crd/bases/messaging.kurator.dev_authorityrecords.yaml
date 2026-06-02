@@ -4,24 +4,27 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.19.0
-  name: queuemanagerconnections.messaging.kurator.dev
+  name: authorityrecords.messaging.kurator.dev
 spec:
   group: messaging.kurator.dev
   names:
-    kind: QueueManagerConnection
-    listKind: QueueManagerConnectionList
-    plural: queuemanagerconnections
+    kind: AuthorityRecord
+    listKind: AuthorityRecordList
+    plural: authorityrecords
     shortNames:
-    - qmc
-    singular: queuemanagerconnection
+    - auth
+    singular: authorityrecord
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .status.conditions[?(@.type=="Ready")].status
-      name: Ready
+    - jsonPath: .status.conditions[?(@.type=="Synced")].status
+      name: Synced
       type: string
-    - jsonPath: .status.conditions[?(@.type=="Ready")].reason
+    - jsonPath: .status.conditions[?(@.type=="Synced")].reason
       name: Reason
+      type: string
+    - jsonPath: .spec.profile
+      name: Profile
       type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
@@ -29,8 +32,8 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: QueueManagerConnection describes how to reach an IBM MQ queue
-          manager via mqweb.
+        description: AuthorityRecord maintains IBM MQ OAM authority on a referenced
+          queue manager.
         properties:
           apiVersion:
             description: |-
@@ -50,13 +53,19 @@ spec:
           metadata:
             type: object
           spec:
-            description: QueueManagerConnectionSpec defines how to reach an IBM MQ
+            description: AuthorityRecordSpec defines a SET AUTHREC rule on a referenced
               queue manager.
             properties:
-              credentialsSecretRef:
-                description: |-
-                  CredentialsSecretRef references a Secret with mqweb credentials.
-                  Required keys: username, password (mqAdminPassword is also accepted for password).
+              authorities:
+                description: Authorities maps to AUTHADD(...) — e.g. GET, PUT, CONNECT.
+                items:
+                  type: string
+                minItems: 1
+                type: array
+                x-kubernetes-list-type: set
+              connectionRef:
+                description: ConnectionRef names a QueueManagerConnection in the same
+                  namespace.
                 properties:
                   name:
                     minLength: 1
@@ -64,48 +73,41 @@ spec:
                 required:
                 - name
                 type: object
-              endpoint:
-                description: Endpoint is the mqweb base URL, e.g. https://ibm-mq.ibm-mq.svc:9443
-                pattern: ^https://
+              group:
+                description: Group maps to GROUP('…'). Mutually exclusive with Principal.
                 type: string
-              queueManager:
-                description: QueueManager is the IBM MQ queue manager name (case-sensitive).
+              objectType:
+                description: ObjectType maps to OBJTYPE(...).
+                enum:
+                - QUEUE
+                - CHANNEL
+                - TOPIC
+                - QMGR
+                - NAMESPAC
+                - PROCESS
+                - NLIST
+                type: string
+              principal:
+                description: Principal maps to PRINCIPAL('…'). Mutually exclusive
+                  with Group.
+                type: string
+              profile:
+                description: Profile maps to PROFILE('…') — queue, channel, or other
+                  object name.
                 minLength: 1
                 type: string
-              restPrefix:
-                description: RESTPrefix is the mqweb REST API path prefix. Defaults
-                  to /ibmmq/rest/v3.
-                pattern: ^/
-                type: string
-              tls:
-                description: TLS configures HTTPS trust for mqweb.
-                properties:
-                  caSecretRef:
-                    description: CASecretRef references a Secret containing a CA bundle
-                      (key tls.crt or ca.crt).
-                    properties:
-                      name:
-                        minLength: 1
-                        type: string
-                    required:
-                    - name
-                    type: object
-                  insecureSkipVerify:
-                    description: InsecureSkipVerify disables server certificate verification
-                      (dev only).
-                    type: boolean
-                type: object
             required:
-            - credentialsSecretRef
-            - endpoint
-            - queueManager
+            - authorities
+            - connectionRef
+            - objectType
+            - profile
             type: object
           status:
-            description: QueueManagerConnectionStatus defines the observed state of
-              QueueManagerConnection.
+            description: AuthorityRecordStatus defines the observed state of AuthorityRecord.
             properties:
               conditions:
-                description: Conditions represent the current state of the connection.
+                description: Conditions represent the current state of the authority
+                  record.
                 items:
                   description: Condition contains details for one aspect of the current
                     state of this API Resource.
@@ -165,7 +167,8 @@ spec:
                 - type
                 x-kubernetes-list-type: map
               observedGeneration:
-                description: ObservedGeneration reflects the generation last reconciled.
+                description: ObservedGeneration reflects the generation last successfully
+                  synced.
                 format: int64
                 type: integer
             type: object

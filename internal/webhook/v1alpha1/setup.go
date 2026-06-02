@@ -49,5 +49,11 @@ func SetupWithManager(mgr ctrl.Manager) error {
 	if err := setupChannelWebhook(mgr); err != nil {
 		return fmt.Errorf("setup Channel webhook: %w", err)
 	}
+	if err := setupChannelAuthRuleWebhook(mgr); err != nil {
+		return fmt.Errorf("setup ChannelAuthRule webhook: %w", err)
+	}
+	if err := setupAuthorityRecordWebhook(mgr); err != nil {
+		return fmt.Errorf("setup AuthorityRecord webhook: %w", err)
+	}
 	return nil
 }

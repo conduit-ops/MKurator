@@ -7,10 +7,9 @@ package mqadmintest
 import (
 	"context"
 
-	mock "github.com/stretchr/testify/mock"
-
 	"github.com/konih/kurator/api/v1alpha1"
 	"github.com/konih/kurator/internal/mqadmin"
+	mock "github.com/stretchr/testify/mock"
 )
 
 // NewMockFactory creates a new instance of MockFactory. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
@@ -363,6 +362,63 @@ func (_c *MockAdmin_DefineTopic_Call) RunAndReturn(run func(ctx context.Context,
 	return _c
 }
 
+// DeleteAuthority provides a mock function for the type MockAdmin
+func (_mock *MockAdmin) DeleteAuthority(ctx context.Context, spec mqadmin.AuthoritySpec) error {
+	ret := _mock.Called(ctx, spec)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteAuthority")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, mqadmin.AuthoritySpec) error); ok {
+		r0 = returnFunc(ctx, spec)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockAdmin_DeleteAuthority_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteAuthority'
+type MockAdmin_DeleteAuthority_Call struct {
+	*mock.Call
+}
+
+// DeleteAuthority is a helper method to define mock.On call
+//   - ctx context.Context
+//   - spec mqadmin.AuthoritySpec
+func (_e *MockAdmin_Expecter) DeleteAuthority(ctx interface{}, spec interface{}) *MockAdmin_DeleteAuthority_Call {
+	return &MockAdmin_DeleteAuthority_Call{Call: _e.mock.On("DeleteAuthority", ctx, spec)}
+}
+
+func (_c *MockAdmin_DeleteAuthority_Call) Run(run func(ctx context.Context, spec mqadmin.AuthoritySpec)) *MockAdmin_DeleteAuthority_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 mqadmin.AuthoritySpec
+		if args[1] != nil {
+			arg1 = args[1].(mqadmin.AuthoritySpec)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAdmin_DeleteAuthority_Call) Return(err error) *MockAdmin_DeleteAuthority_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockAdmin_DeleteAuthority_Call) RunAndReturn(run func(ctx context.Context, spec mqadmin.AuthoritySpec) error) *MockAdmin_DeleteAuthority_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // DeleteChannel provides a mock function for the type MockAdmin
 func (_mock *MockAdmin) DeleteChannel(ctx context.Context, spec mqadmin.ChannelSpec) error {
 	ret := _mock.Called(ctx, spec)
@@ -416,6 +472,63 @@ func (_c *MockAdmin_DeleteChannel_Call) Return(err error) *MockAdmin_DeleteChann
 }
 
 func (_c *MockAdmin_DeleteChannel_Call) RunAndReturn(run func(ctx context.Context, spec mqadmin.ChannelSpec) error) *MockAdmin_DeleteChannel_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DeleteChannelAuth provides a mock function for the type MockAdmin
+func (_mock *MockAdmin) DeleteChannelAuth(ctx context.Context, spec mqadmin.ChannelAuthSpec) error {
+	ret := _mock.Called(ctx, spec)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteChannelAuth")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, mqadmin.ChannelAuthSpec) error); ok {
+		r0 = returnFunc(ctx, spec)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockAdmin_DeleteChannelAuth_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteChannelAuth'
+type MockAdmin_DeleteChannelAuth_Call struct {
+	*mock.Call
+}
+
+// DeleteChannelAuth is a helper method to define mock.On call
+//   - ctx context.Context
+//   - spec mqadmin.ChannelAuthSpec
+func (_e *MockAdmin_Expecter) DeleteChannelAuth(ctx interface{}, spec interface{}) *MockAdmin_DeleteChannelAuth_Call {
+	return &MockAdmin_DeleteChannelAuth_Call{Call: _e.mock.On("DeleteChannelAuth", ctx, spec)}
+}
+
+func (_c *MockAdmin_DeleteChannelAuth_Call) Run(run func(ctx context.Context, spec mqadmin.ChannelAuthSpec)) *MockAdmin_DeleteChannelAuth_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 mqadmin.ChannelAuthSpec
+		if args[1] != nil {
+			arg1 = args[1].(mqadmin.ChannelAuthSpec)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAdmin_DeleteChannelAuth_Call) Return(err error) *MockAdmin_DeleteChannelAuth_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockAdmin_DeleteChannelAuth_Call) RunAndReturn(run func(ctx context.Context, spec mqadmin.ChannelAuthSpec) error) *MockAdmin_DeleteChannelAuth_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -785,6 +898,120 @@ func (_c *MockAdmin_Ping_Call) Return(err error) *MockAdmin_Ping_Call {
 }
 
 func (_c *MockAdmin_Ping_Call) RunAndReturn(run func(ctx context.Context) error) *MockAdmin_Ping_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// SetAuthority provides a mock function for the type MockAdmin
+func (_mock *MockAdmin) SetAuthority(ctx context.Context, spec mqadmin.AuthoritySpec) error {
+	ret := _mock.Called(ctx, spec)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SetAuthority")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, mqadmin.AuthoritySpec) error); ok {
+		r0 = returnFunc(ctx, spec)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockAdmin_SetAuthority_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetAuthority'
+type MockAdmin_SetAuthority_Call struct {
+	*mock.Call
+}
+
+// SetAuthority is a helper method to define mock.On call
+//   - ctx context.Context
+//   - spec mqadmin.AuthoritySpec
+func (_e *MockAdmin_Expecter) SetAuthority(ctx interface{}, spec interface{}) *MockAdmin_SetAuthority_Call {
+	return &MockAdmin_SetAuthority_Call{Call: _e.mock.On("SetAuthority", ctx, spec)}
+}
+
+func (_c *MockAdmin_SetAuthority_Call) Run(run func(ctx context.Context, spec mqadmin.AuthoritySpec)) *MockAdmin_SetAuthority_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 mqadmin.AuthoritySpec
+		if args[1] != nil {
+			arg1 = args[1].(mqadmin.AuthoritySpec)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAdmin_SetAuthority_Call) Return(err error) *MockAdmin_SetAuthority_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockAdmin_SetAuthority_Call) RunAndReturn(run func(ctx context.Context, spec mqadmin.AuthoritySpec) error) *MockAdmin_SetAuthority_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// SetChannelAuth provides a mock function for the type MockAdmin
+func (_mock *MockAdmin) SetChannelAuth(ctx context.Context, spec mqadmin.ChannelAuthSpec) error {
+	ret := _mock.Called(ctx, spec)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SetChannelAuth")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, mqadmin.ChannelAuthSpec) error); ok {
+		r0 = returnFunc(ctx, spec)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockAdmin_SetChannelAuth_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetChannelAuth'
+type MockAdmin_SetChannelAuth_Call struct {
+	*mock.Call
+}
+
+// SetChannelAuth is a helper method to define mock.On call
+//   - ctx context.Context
+//   - spec mqadmin.ChannelAuthSpec
+func (_e *MockAdmin_Expecter) SetChannelAuth(ctx interface{}, spec interface{}) *MockAdmin_SetChannelAuth_Call {
+	return &MockAdmin_SetChannelAuth_Call{Call: _e.mock.On("SetChannelAuth", ctx, spec)}
+}
+
+func (_c *MockAdmin_SetChannelAuth_Call) Run(run func(ctx context.Context, spec mqadmin.ChannelAuthSpec)) *MockAdmin_SetChannelAuth_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 mqadmin.ChannelAuthSpec
+		if args[1] != nil {
+			arg1 = args[1].(mqadmin.ChannelAuthSpec)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAdmin_SetChannelAuth_Call) Return(err error) *MockAdmin_SetChannelAuth_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockAdmin_SetChannelAuth_Call) RunAndReturn(run func(ctx context.Context, spec mqadmin.ChannelAuthSpec) error) *MockAdmin_SetChannelAuth_Call {
 	_c.Call.Return(run)
 	return _c
 }

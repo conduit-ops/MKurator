@@ -16,22 +16,28 @@ const (
 	ControllerQueue                  = "queue"
 	ControllerTopic                  = "topic"
 	ControllerChannel                = "channel"
+	ControllerChannelAuthRule        = "channelauthrule"
+	ControllerAuthorityRecord        = "authorityrecord"
 	ControllerQueueManagerConnection = "queuemanagerconnection"
 )
 
 // MQ operation names for mqweb adapter metrics.
 const (
-	MQOpPing          = "ping"
-	MQOpGetQueue      = "get_queue"
-	MQOpDefineQueue   = "define_queue"
-	MQOpDeleteQueue   = "delete_queue"
-	MQOpGetTopic      = "get_topic"
-	MQOpDefineTopic   = "define_topic"
-	MQOpDeleteTopic   = "delete_topic"
-	MQOpGetChannel    = "get_channel"
-	MQOpDefineChannel = "define_channel"
-	MQOpDeleteChannel = "delete_channel"
-	MQOpRunMQSC       = "run_mqsc"
+	MQOpPing              = "ping"
+	MQOpGetQueue          = "get_queue"
+	MQOpDefineQueue       = "define_queue"
+	MQOpDeleteQueue       = "delete_queue"
+	MQOpGetTopic          = "get_topic"
+	MQOpDefineTopic       = "define_topic"
+	MQOpDeleteTopic       = "delete_topic"
+	MQOpGetChannel        = "get_channel"
+	MQOpDefineChannel     = "define_channel"
+	MQOpDeleteChannel     = "delete_channel"
+	MQOpSetChannelAuth    = "set_channel_auth"
+	MQOpDeleteChannelAuth = "delete_channel_auth"
+	MQOpSetAuthority      = "set_authority"
+	MQOpDeleteAuthority   = "delete_authority"
+	MQOpRunMQSC           = "run_mqsc"
 )
 
 var (

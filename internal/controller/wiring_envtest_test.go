@@ -46,5 +46,17 @@ var _ = Describe("Controller wiring", func() {
 			Scheme:    mgr.GetScheme(),
 			MQFactory: mockFactory,
 		}).SetupWithManager(mgr)).To(Succeed())
+
+		Expect((&ChannelAuthRuleReconciler{
+			Client:    mgr.GetClient(),
+			Scheme:    mgr.GetScheme(),
+			MQFactory: mockFactory,
+		}).SetupWithManager(mgr)).To(Succeed())
+
+		Expect((&AuthorityRecordReconciler{
+			Client:    mgr.GetClient(),
+			Scheme:    mgr.GetScheme(),
+			MQFactory: mockFactory,
+		}).SetupWithManager(mgr)).To(Succeed())
 	})
 })
