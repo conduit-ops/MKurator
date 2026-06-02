@@ -222,6 +222,21 @@ tasks:
         vars:
           CLI_ARGS: "{{.CLI_ARGS}}"
 
+  mq:integration:up:
+    desc: Start standalone IBM MQ in Docker for integration tests
+    cmds:
+      - docker compose -f hack/mq-docker/docker-compose.yml up -d
+
+  mq:integration:wait:
+    desc: Wait until mqweb is ready on localhost:9443 (Docker integration MQ)
+    cmds:
+      - bash hack/mq-docker/wait-mqweb.sh
+
+  mq:integration:down:
+    desc: Stop Docker integration MQ container
+    cmds:
+      - docker compose -f hack/mq-docker/docker-compose.yml down
+
   local:down:
     desc: "Tear down sample CRs, Helm release, and kind cluster"
     cmds:
@@ -238,3 +253,11 @@ tasks:
       - task: cluster:up
       - bash hack/ci/wait-mqweb.sh
       - task: test:e2e
+
+  ci:integration:
+    desc: "Integration test parity with GitHub Actions (Docker MQ up, test, down)"
+    cmds:
+      - task: mq:integration:up
+      - task: mq:integration:wait
+      - task: test:integration
+      - task: mq:integration:down

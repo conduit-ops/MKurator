@@ -282,7 +282,43 @@ task cluster:down    # full platform teardown
 |------|-------|------------------|---------|
 | **Unit** | Reconciler logic + REST adapter vs mocks / `httptest` | No | `task test:run` |
 | **envtest** | Controller + API against a real API server (`setup-envtest`), `MQAdmin` mocked | No (downloads control-plane binaries) | `task test:run` |
+| **Integration** | `mqrest` / `mqadmin.Admin` queue CRUD against live mqweb | No (Docker MQ only) | `task test:integration` / `task test:integration:local` |
 | **e2e** | Operator in kind against live IBM MQ; asserts real MQSC | Yes (`task cluster:up` or `task ci:e2e`) | `task test:e2e` / `task ci:e2e` |
+
+### IBM MQ integration tests (Docker)
+
+Fast contract tests for queue object operations via mqweb — no Kubernetes or
+operator required. Uses `//go:build integration` in [`test/integration/mq/`](../test/integration/mq/).
+
+```sh
+task test:integration:local   # docker compose up + wait + tests (first run: image pull)
+# or, if the container is already up:
+task test:integration
+task mq:integration:down
+```
+
+Set `KURATOR_INTEGRATION_MQ=1` (done automatically by `task test:integration`).
+Without it, integration tests skip so IDEs can run `-tags=integration` safely.
+
+| Variable | Default (Docker) | Purpose |
+|----------|------------------|---------|
+| `KURATOR_INTEGRATION_MQ` | unset → skip | Enable integration tests |
+| `KURATOR_INTEGRATION_MQ_ENDPOINT` | `https://127.0.0.1:9443` | mqweb base URL |
+| `KURATOR_INTEGRATION_MQ_QMGR` | `QM1` | Queue manager name |
+| `KURATOR_INTEGRATION_MQ_USER` / `_PASSWORD` | `admin` / `passw0rd` | Basic auth |
+| `KURATOR_INTEGRATION_MQ_INSECURE_TLS` | `true` | Self-signed container cert |
+| `KURATOR_INTEGRATION_MQ_HOST` | empty | Set to `mq.localhost` when reusing kind NodePort |
+
+Reuse the kind platform MQ instead of a second container:
+
+```sh
+export KURATOR_INTEGRATION_MQ=1
+export KURATOR_INTEGRATION_MQ_ENDPOINT=https://127.0.0.1:30443
+export KURATOR_INTEGRATION_MQ_HOST=mq.localhost
+task test:integration
+```
+
+See [`hack/mq-docker/README.md`](../hack/mq-docker/README.md).
 
 **IBM MQ e2e scenarios** (queue reconcile, channel/auth fixtures) run only when
 `KURATOR_E2E_MQ=1` is set and the kind platform with IBM MQ is up. Without that,
@@ -295,6 +331,7 @@ Guidelines:
 
 - Unit + envtest must stay fast and hermetic; mock the `MQAdmin` port, never hit
   a real Queue Manager.
+- Integration is gated behind `//go:build integration` and `KURATOR_INTEGRATION_MQ=1`.
 - e2e is gated behind a build tag (`//go:build e2e`) so it does not run in the
   default `go test ./...`.
 - Keep coverage high on `internal/`; CI reports it.
