@@ -508,6 +508,16 @@ only — it does not own MQ objects on the queue manager).
 
 ## Troubleshooting
 
+Recent operator activity is recorded as Kubernetes **Events** on each custom
+resource. `kubectl describe` shows the latest Events inline; list them for a
+specific object with:
+
+```sh
+kubectl get events -n kurator-system \
+  --field-selector involvedObject.name=orders \
+  --sort-by=.lastTimestamp
+```
+
 ### `QueueManagerConnection` not Ready
 
 ```sh

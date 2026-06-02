@@ -60,7 +60,7 @@ func (r *QueueReconciler) reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return setSyncedError(ctx, r.Status(), r.Recorder, q, q.Generation, err)
 	}
 
-	waitResult, waitDone, waitErr := waitForConnectionReady(ctx, r.Status(), q, conn, q.Generation)
+	waitResult, waitDone, waitErr := waitForConnectionReady(ctx, r.Status(), r.Recorder, q, conn, q.Generation)
 	if waitDone {
 		return waitResult, waitErr
 	}
@@ -87,7 +87,7 @@ func (r *QueueReconciler) reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return setSyncedError(ctx, r.Status(), r.Recorder, q, q.Generation, err)
 	}
 
-	if err := patchSyncedAvailable(ctx, r.Status(), q, q.Generation, "Queue matches spec"); err != nil {
+	if err := patchSyncedAvailable(ctx, r.Status(), r.Recorder, q, q.Generation, "Queue matches spec"); err != nil {
 		return ctrl.Result{}, fmt.Errorf("update status: %w", err)
 	}
 	logger.Info("Queue synced", "queue", q.Spec.QueueName)
@@ -116,13 +116,15 @@ func (r *QueueReconciler) handleDeletion(
 	q *messagingv1alpha1.Queue,
 	admin mqadmin.Admin,
 ) (ctrl.Result, error) {
-	if err := patchSyncedDeleting(ctx, r.Status(), q, q.Generation, "Deleting queue from IBM MQ"); err != nil {
+	if err := patchSyncedDeleting(ctx, r.Status(), r.Recorder, q, q.Generation, "Deleting queue from IBM MQ"); err != nil {
 		return ctrl.Result{}, err
 	}
 
 	if err := admin.DeleteQueue(ctx, toMQQueueSpec(q)); err != nil {
 		return setSyncedError(ctx, r.Status(), r.Recorder, q, q.Generation, err)
 	}
+
+	recordNormalEvent(r.Recorder, q, EventReasonDeleted, "Queue removed from IBM MQ")
 
 	controllerutil.RemoveFinalizer(q, messagingv1alpha1.QueueFinalizer)
 	if err := r.Update(ctx, q); err != nil {

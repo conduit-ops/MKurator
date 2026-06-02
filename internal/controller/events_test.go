@@ -1,54 +1,156 @@
 package controller
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/record"
 
 	messagingv1alpha1 "github.com/konih/kurator/api/v1alpha1"
 	"github.com/konih/kurator/internal/mqadmin"
 )
 
-func TestRecordTerminalEvent_NilRecorder(t *testing.T) {
+func TestClassifyReconcileError(t *testing.T) {
 	t.Parallel()
-	recordTerminalEvent(nil, &messagingv1alpha1.Queue{
+
+	tests := []struct {
+		name       string
+		err        error
+		wantReason string
+		wantMsg    string
+	}{
+		{
+			name:       "terminal with reason",
+			err:        &mqadmin.TerminalError{Reason: "MQSCError", Message: "define failed: AMQ8405E"},
+			wantReason: "MQSCError",
+			wantMsg:    "define failed: AMQ8405E",
+		},
+		{
+			name:       "terminal without reason",
+			err:        &mqadmin.TerminalError{Message: "bad mqsc"},
+			wantReason: messagingv1alpha1.ReasonError,
+			wantMsg:    "bad mqsc",
+		},
+		{
+			name:       "connection not found",
+			err:        fmt.Errorf(`get connection "qm1": %w`, apierrors.NewNotFound(schema.GroupResource{Resource: "queuemanagerconnections"}, "qm1")),
+			wantReason: EventReasonConnectionNotFound,
+		},
+		{
+			name:       "credentials secret not found",
+			err:        fmt.Errorf("get credentials secret: %w", apierrors.NewNotFound(schema.GroupResource{Resource: "secrets"}, "mq-creds")),
+			wantReason: EventReasonSecretNotFound,
+		},
+		{
+			name:       "ca secret not found",
+			err:        fmt.Errorf("get CA secret for cache key: %w", apierrors.NewNotFound(schema.GroupResource{Resource: "secrets"}, "mq-ca")),
+			wantReason: EventReasonSecretNotFound,
+		},
+		{
+			name:       "generic error",
+			err:        mqadmin.ErrNotFound,
+			wantReason: messagingv1alpha1.ReasonError,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			reason, msg := classifyReconcileError(tt.err)
+			if reason != tt.wantReason {
+				t.Fatalf("reason = %q, want %q", reason, tt.wantReason)
+			}
+			if tt.wantMsg != "" && msg != tt.wantMsg {
+				t.Fatalf("message = %q, want %q", msg, tt.wantMsg)
+			}
+		})
+	}
+}
+
+func TestConditionChanged(t *testing.T) {
+	t.Parallel()
+
+	conditions := []metav1.Condition{{
+		Type:   messagingv1alpha1.ConditionSynced,
+		Status: metav1.ConditionFalse,
+		Reason: messagingv1alpha1.ReasonProgressing,
+	}}
+
+	if !conditionChanged(conditions, messagingv1alpha1.ConditionSynced, metav1.ConditionTrue, messagingv1alpha1.ReasonAvailable) {
+		t.Fatal("expected changed on status transition")
+	}
+	if conditionChanged(conditions, messagingv1alpha1.ConditionSynced, metav1.ConditionFalse, messagingv1alpha1.ReasonProgressing) {
+		t.Fatal("expected unchanged when status and reason match")
+	}
+	if !conditionChanged(nil, messagingv1alpha1.ConditionSynced, metav1.ConditionTrue, messagingv1alpha1.ReasonAvailable) {
+		t.Fatal("expected changed when condition missing")
+	}
+}
+
+func TestRecordReconcileWarning_NilRecorder(t *testing.T) {
+	t.Parallel()
+	recordReconcileWarning(nil, &messagingv1alpha1.Queue{
 		ObjectMeta: metav1.ObjectMeta{Name: "orders", Namespace: "default"},
 	}, &mqadmin.TerminalError{Message: "bad mqsc"})
 }
 
-func TestRecordTerminalEvent_SkipsTransient(t *testing.T) {
-	t.Parallel()
-	recordTerminalEvent(nil, &messagingv1alpha1.Queue{}, &mqadmin.TransientError{Message: "timeout"})
-}
-
-func TestRecordTerminalEvent_EmitsWarning(t *testing.T) {
+func TestRecordReconcileWarning_SkipsTransient(t *testing.T) {
 	t.Parallel()
 	recorder := record.NewFakeRecorder(1)
+	recordReconcileWarning(recorder, &messagingv1alpha1.Queue{}, &mqadmin.TransientError{Message: "timeout"})
+	select {
+	case ev := <-recorder.Events:
+		t.Fatalf("unexpected event: %q", ev)
+	case <-time.After(50 * time.Millisecond):
+	}
+}
+
+func TestRecordReconcileWarning_EmitsWarning(t *testing.T) {
+	t.Parallel()
+	recorder := record.NewFakeRecorder(2)
 	q := &messagingv1alpha1.Queue{
 		ObjectMeta: metav1.ObjectMeta{Name: "orders", Namespace: "default"},
 	}
-	recordTerminalEvent(recorder, q, &mqadmin.TerminalError{Message: "bad mqsc"})
+	recordReconcileWarning(recorder, q, &mqadmin.TerminalError{Reason: "MQSCError", Message: "bad mqsc"})
 	select {
 	case ev := <-recorder.Events:
-		if !strings.Contains(ev, corev1.EventTypeWarning) || !strings.Contains(ev, "TerminalError") {
+		if !strings.Contains(ev, corev1.EventTypeWarning) || !strings.Contains(ev, "MQSCError") {
 			t.Fatalf("event = %q", ev)
 		}
 	case <-time.After(time.Second):
 		t.Fatal("expected event")
 	}
 
-	recorder = record.NewFakeRecorder(1)
-	recordTerminalEvent(recorder, q, mqadmin.ErrNotFound)
+	recordReconcileWarning(recorder, q, mqadmin.ErrNotFound)
 	select {
 	case ev := <-recorder.Events:
-		if !strings.Contains(ev, "ReconcileError") {
+		if !strings.Contains(ev, messagingv1alpha1.ReasonError) {
 			t.Fatalf("event = %q", ev)
 		}
 	case <-time.After(time.Second):
 		t.Fatal("expected event for non-terminal error")
+	}
+}
+
+func TestRecordNormalEvent(t *testing.T) {
+	t.Parallel()
+	recorder := record.NewFakeRecorder(1)
+	q := &messagingv1alpha1.Queue{
+		ObjectMeta: metav1.ObjectMeta{Name: "orders", Namespace: "default"},
+	}
+	recordNormalEvent(recorder, q, messagingv1alpha1.ReasonAvailable, "Queue matches spec")
+	select {
+	case ev := <-recorder.Events:
+		if !strings.Contains(ev, corev1.EventTypeNormal) || !strings.Contains(ev, messagingv1alpha1.ReasonAvailable) {
+			t.Fatalf("event = %q", ev)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("expected normal event")
 	}
 }

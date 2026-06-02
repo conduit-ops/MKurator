@@ -37,6 +37,7 @@ func resolveConnection(
 func waitForConnectionReady(
 	ctx context.Context,
 	status client.StatusWriter,
+	recorder record.EventRecorder,
 	obj client.Object,
 	conn *messagingv1alpha1.QueueManagerConnection,
 	generation int64,
@@ -45,19 +46,46 @@ func waitForConnectionReady(
 		return ctrl.Result{}, false, nil
 	}
 	msg := fmt.Sprintf("waiting for connection %q to become Ready", conn.Name)
-	if err := patchSyncedProgressing(ctx, status, obj, generation, msg); err != nil {
+	if err := patchSyncedProgressing(ctx, status, recorder, obj, generation, msg); err != nil {
 		return ctrl.Result{}, true, err
 	}
 	return ctrl.Result{RequeueAfter: 15 * time.Second}, true, nil
 }
 
+func syncedConditions(obj client.Object) []metav1.Condition {
+	switch o := obj.(type) {
+	case *messagingv1alpha1.Queue:
+		return o.Status.Conditions
+	case *messagingv1alpha1.Topic:
+		return o.Status.Conditions
+	case *messagingv1alpha1.Channel:
+		return o.Status.Conditions
+	default:
+		return nil
+	}
+}
+
+func emitSyncedTransitionEvent(
+	recorder record.EventRecorder,
+	obj client.Object,
+	newStatus metav1.ConditionStatus,
+	newReason, message string,
+) {
+	if conditionChanged(syncedConditions(obj), messagingv1alpha1.ConditionSynced, newStatus, newReason) {
+		recordNormalEvent(recorder, obj, newReason, message)
+	}
+}
+
 func patchSyncedProgressing(
 	ctx context.Context,
 	status client.StatusWriter,
+	recorder record.EventRecorder,
 	obj client.Object,
 	generation int64,
 	message string,
 ) error {
+	emitSyncedTransitionEvent(recorder, obj, metav1.ConditionFalse, messagingv1alpha1.ReasonProgressing, message)
+
 	switch o := obj.(type) {
 	case *messagingv1alpha1.Queue:
 		setCondition(&o.Status.Conditions, messagingv1alpha1.ConditionSynced,
@@ -84,7 +112,7 @@ func setSyncedError(
 	generation int64,
 	err error,
 ) (ctrl.Result, error) {
-	recordTerminalEvent(recorder, obj, err)
+	recordReconcileWarning(recorder, obj, err)
 
 	reason := messagingv1alpha1.ReasonError
 	requeue := ctrl.Result{}
@@ -124,10 +152,13 @@ func setSyncedError(
 func patchSyncedAvailable(
 	ctx context.Context,
 	status client.StatusWriter,
+	recorder record.EventRecorder,
 	obj client.Object,
 	generation int64,
 	message string,
 ) error {
+	emitSyncedTransitionEvent(recorder, obj, metav1.ConditionTrue, messagingv1alpha1.ReasonAvailable, message)
+
 	switch o := obj.(type) {
 	case *messagingv1alpha1.Queue:
 		setCondition(&o.Status.Conditions, messagingv1alpha1.ConditionSynced,
@@ -152,10 +183,13 @@ func patchSyncedAvailable(
 func patchSyncedDeleting(
 	ctx context.Context,
 	status client.StatusWriter,
+	recorder record.EventRecorder,
 	obj client.Object,
 	generation int64,
 	message string,
 ) error {
+	emitSyncedTransitionEvent(recorder, obj, metav1.ConditionFalse, messagingv1alpha1.ReasonDeleting, message)
+
 	switch o := obj.(type) {
 	case *messagingv1alpha1.Queue:
 		setCondition(&o.Status.Conditions, messagingv1alpha1.ConditionSynced,
