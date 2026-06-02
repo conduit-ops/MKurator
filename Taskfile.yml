@@ -1,0 +1,20 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+---
+version: "3"
+
+# Local development cluster tasks live under hack/kind-cluster and are exposed
+# here under the "cluster" namespace, e.g. `task cluster:up` / `task cluster:down`.
+#
+# Operator build/lint/test tasks (install, lint, manifests, generate, build,
+# test:run, test:e2e) will be added here in Phase 1 (see docs/ROADMAP.md).
+includes:
+  cluster:
+    taskfile: ./hack/kind-cluster/Taskfile.yml
+    dir: ./hack/kind-cluster
+
+tasks:
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list-all
+    silent: true

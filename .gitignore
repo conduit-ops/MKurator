@@ -29,6 +29,16 @@ go.work.sum
 # env file
 .env
 
+# Local kind dev cluster state (kubeconfig, mkcert certs, tls.env)
+.state/
+
+# Terraform working files
+**/.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+
 # Editor/IDE
 # .idea/
 # .vscode/

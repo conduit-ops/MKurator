@@ -1,0 +1,57 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+---
+version: "3"
+
+env:
+  KUBECONFIG: "{{.TASKFILE_DIR}}/.state/kubeconfig.yaml"
+
+tasks:
+  default:
+    desc: Show available local-cluster tasks
+    cmds:
+      - task --list
+    silent: true
+
+  kind:up:
+    desc: Create the kind cluster and export its kubeconfig
+    cmds:
+      - ./scripts/kind-up.sh
+
+  kind:down:
+    desc: Delete the kind cluster
+    cmds:
+      - ./scripts/kind-down.sh
+
+  tls:
+    desc: Generate mkcert TLS cert + .state/tls.env
+    cmds:
+      - ./scripts/mkcert-gen.sh
+
+  apply:
+    desc: Terraform apply (ingress-nginx, cert-manager, monitoring, IBM MQ)
+    deps: [tls]
+    cmds:
+      - ./scripts/terraform-apply.sh
+
+  info:
+    desc: Print access URLs and credentials
+    cmds:
+      - ./scripts/info.sh
+
+  up:
+    desc: Full bring-up (kind, tls, terraform), then print access info
+    cmds:
+      - task: kind:up
+      - task: tls
+      - task: apply
+      - task: info
+
+  cleanup:
+    desc: Terraform destroy (keeps the kind cluster; set DELETE_CLUSTER=true to remove it)
+    cmds:
+      - ./scripts/cleanup.sh
+
+  down:
+    desc: Tear everything down (terraform destroy + delete kind cluster + wipe state)
+    cmds:
+      - DELETE_CLUSTER=true DELETE_STATE=true ./scripts/cleanup.sh
