@@ -5,6 +5,7 @@ package mq
 import (
 	"crypto/tls"
 	"fmt"
+	"hash/fnv"
 	"net/http"
 	"net/url"
 	"os"
@@ -78,8 +79,8 @@ func (h *hostHeaderRoundTripper) RoundTrip(req *http.Request) (*http.Response, e
 	return h.transport.RoundTrip(req)
 }
 
-// queueNameForTest returns a unique MQ object name for the test (max 48 chars).
-func queueNameForTest(tName string) string {
+// objectNameForTest returns a unique MQ object name for the test (max 48 chars).
+func objectNameForTest(tName string) string {
 	const prefix = "KURATOR.IT."
 	safe := strings.Map(func(r rune) rune {
 		switch {
@@ -96,4 +97,21 @@ func queueNameForTest(tName string) string {
 		name = name[:48]
 	}
 	return strings.Trim(name, ".")
+}
+
+func queueNameForTest(tName string) string { return objectNameForTest(tName) }
+
+func topicNameForTest(tName string) string {
+	return fmt.Sprintf("KIT.T.%05d", testNameHash(tName)%100000)
+}
+
+// channelNameForTest returns a name within IBM MQ's 20-character channel limit.
+func channelNameForTest(tName string) string {
+	return fmt.Sprintf("KIT.C.%05d", testNameHash(tName)%100000)
+}
+
+func testNameHash(tName string) uint32 {
+	h := fnv.New32a()
+	_, _ = h.Write([]byte(tName))
+	return h.Sum32()
 }

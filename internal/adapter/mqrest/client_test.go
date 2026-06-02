@@ -300,3 +300,228 @@ func TestClient_PingServerError(t *testing.T) {
 		t.Fatalf("expected transient error, got %v", err)
 	}
 }
+
+func TestClient_DefineAndGetTopic(t *testing.T) {
+	t.Parallel()
+	var lastBody map[string]any
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		if err := json.NewDecoder(r.Body).Decode(&lastBody); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if lastBody["command"] == "display" {
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				testKeyCommandResponse: []map[string]any{{
+					testKeyCompletionCode: 0,
+					"parameters":          map[string]any{"topstr": "retail/orders"},
+				}},
+				testKeyOverallCompletionCode: 0,
+			})
+			return
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			testKeyCommandResponse:       []map[string]any{{testKeyCompletionCode: 0}},
+			testKeyOverallCompletionCode: 0,
+		})
+	}))
+	defer srv.Close()
+
+	c := newTestClient(t, srv.URL, srv.Client())
+	spec := mqadmin.TopicSpec{
+		Name: "RETAIL.ORDERS",
+		Attributes: map[string]string{
+			"topstr": "retail/orders",
+		},
+	}
+	if err := c.DefineTopic(context.Background(), spec); err != nil {
+		t.Fatalf("DefineTopic: %v", err)
+	}
+	if lastBody["qualifier"] != "topic" {
+		t.Fatalf("qualifier = %v", lastBody["qualifier"])
+	}
+	state, err := c.GetTopic(context.Background(), "RETAIL.ORDERS")
+	if err != nil {
+		t.Fatalf("GetTopic: %v", err)
+	}
+	if state.Attributes["topstr"] != "retail/orders" {
+		t.Fatalf("topstr = %q", state.Attributes["topstr"])
+	}
+}
+
+func TestClient_DefineAndGetChannel(t *testing.T) {
+	t.Parallel()
+	var lastBody map[string]any
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		if err := json.NewDecoder(r.Body).Decode(&lastBody); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if lastBody["command"] == "display" {
+			params, _ := lastBody["parameters"].(map[string]any)
+			if params["chltype"] != "svrconn" {
+				t.Errorf("display chltype = %v", params["chltype"])
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				testKeyCommandResponse: []map[string]any{{
+					testKeyCompletionCode: 0,
+					"parameters":          map[string]any{"trptype": "tcp"},
+				}},
+				testKeyOverallCompletionCode: 0,
+			})
+			return
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			testKeyCommandResponse:       []map[string]any{{testKeyCompletionCode: 0}},
+			testKeyOverallCompletionCode: 0,
+		})
+	}))
+	defer srv.Close()
+
+	c := newTestClient(t, srv.URL, srv.Client())
+	spec := mqadmin.ChannelSpec{
+		Name: "ORDERS.APP",
+		Type: mqadmin.ChannelTypeSvrconn,
+		Attributes: map[string]string{
+			"trptype": "tcp",
+			"maxmsgl": "4194304",
+		},
+	}
+	if err := c.DefineChannel(context.Background(), spec); err != nil {
+		t.Fatalf("DefineChannel: %v", err)
+	}
+	if lastBody["qualifier"] != "channel" {
+		t.Fatalf("qualifier = %v", lastBody["qualifier"])
+	}
+	params, _ := lastBody["parameters"].(map[string]any)
+	if params["chltype"] != "svrconn" {
+		t.Fatalf("define chltype = %v", params["chltype"])
+	}
+	state, err := c.GetChannel(context.Background(), spec)
+	if err != nil {
+		t.Fatalf("GetChannel: %v", err)
+	}
+	if state.Attributes["trptype"] != "tcp" {
+		t.Fatalf("trptype = %q", state.Attributes["trptype"])
+	}
+}
+
+func TestClient_DeleteTopic(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			testKeyOverallCompletionCode: 0,
+			testKeyCommandResponse:       []map[string]any{{testKeyCompletionCode: 0}},
+		})
+	}))
+	defer srv.Close()
+	c := newTestClient(t, srv.URL, srv.Client())
+	if err := c.DeleteTopic(context.Background(), "RETAIL.ORDERS"); err != nil {
+		t.Fatalf("DeleteTopic: %v", err)
+	}
+}
+
+func TestClient_DeleteTopicNotFound(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			testKeyCommandResponse: []map[string]any{{
+				testKeyCompletionCode: 2,
+				"message":             []string{"AMQ8147E: IBM MQ object RETAIL.ORDERS not found."},
+			}},
+			testKeyOverallCompletionCode: 2,
+		})
+	}))
+	defer srv.Close()
+	c := newTestClient(t, srv.URL, srv.Client())
+	if err := c.DeleteTopic(context.Background(), "RETAIL.ORDERS"); err != nil {
+		t.Fatalf("DeleteTopic not found should succeed: %v", err)
+	}
+}
+
+func TestClient_DeleteChannel(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			testKeyOverallCompletionCode: 0,
+			testKeyCommandResponse:       []map[string]any{{testKeyCompletionCode: 0}},
+		})
+	}))
+	defer srv.Close()
+	c := newTestClient(t, srv.URL, srv.Client())
+	spec := mqadmin.ChannelSpec{Name: "ORDERS.APP", Type: mqadmin.ChannelTypeSvrconn}
+	if err := c.DeleteChannel(context.Background(), spec); err != nil {
+		t.Fatalf("DeleteChannel: %v", err)
+	}
+}
+
+func TestClient_DeleteChannelNotFound(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			testKeyCommandResponse: []map[string]any{{
+				testKeyCompletionCode: 2,
+				"message":             []string{"AMQ8147E: IBM MQ object ORDERS.APP not found."},
+			}},
+			testKeyOverallCompletionCode: 2,
+		})
+	}))
+	defer srv.Close()
+	c := newTestClient(t, srv.URL, srv.Client())
+	spec := mqadmin.ChannelSpec{Name: "ORDERS.APP", Type: mqadmin.ChannelTypeSvrconn}
+	if err := c.DeleteChannel(context.Background(), spec); err != nil {
+		t.Fatalf("DeleteChannel not found should succeed: %v", err)
+	}
+}
+
+func TestClient_GetTopicNotFound(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			testKeyCommandResponse: []map[string]any{{
+				testKeyCompletionCode: 2,
+				"message":             []string{"AMQ8147E: IBM MQ object RETAIL.MISSING not found."},
+			}},
+			testKeyOverallCompletionCode: 2,
+		})
+	}))
+	defer srv.Close()
+	c := newTestClient(t, srv.URL, srv.Client())
+	_, err := c.GetTopic(context.Background(), "RETAIL.MISSING")
+	if err == nil {
+		t.Fatal("expected not found error")
+	}
+	if !errors.Is(err, mqadmin.ErrNotFound) {
+		t.Fatalf("expected ErrNotFound, got %v", err)
+	}
+}
+
+func TestClient_GetChannelNotFound(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			testKeyCommandResponse: []map[string]any{{
+				testKeyCompletionCode: 2,
+				"message":             []string{"AMQ8147E: IBM MQ object ORDERS.MISSING not found."},
+			}},
+			testKeyOverallCompletionCode: 2,
+		})
+	}))
+	defer srv.Close()
+	c := newTestClient(t, srv.URL, srv.Client())
+	spec := mqadmin.ChannelSpec{Name: "ORDERS.MISSING", Type: mqadmin.ChannelTypeSvrconn}
+	_, err := c.GetChannel(context.Background(), spec)
+	if err == nil {
+		t.Fatal("expected not found error")
+	}
+	if !errors.Is(err, mqadmin.ErrNotFound) {
+		t.Fatalf("expected ErrNotFound, got %v", err)
+	}
+}

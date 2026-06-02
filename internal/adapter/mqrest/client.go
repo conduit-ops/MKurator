@@ -19,10 +19,16 @@ import (
 
 const (
 	// DefaultRESTPrefix is the mqweb REST API path for IBM MQ 9.3+.
-	DefaultRESTPrefix = "/ibmmq/rest/v3"
-	csrfHeader        = "ibm-mq-rest-csrf-token"
-	mqscType          = "runCommandJSON"
-	qualifierQLocal   = "qlocal"
+	DefaultRESTPrefix  = "/ibmmq/rest/v3"
+	csrfHeader         = "ibm-mq-rest-csrf-token"
+	mqscType           = "runCommandJSON"
+	mqscCommandDisplay = "display"
+	mqscCommandDefine  = "define"
+	mqscCommandDelete  = "delete"
+	mqscReplaceYes     = "yes"
+	qualifierQLocal    = "qlocal"
+	qualifierTopic     = "topic"
+	qualifierChannel   = "channel"
 )
 
 // Config holds connection parameters for mqweb.
@@ -125,7 +131,7 @@ func (c *Client) GetQueue(ctx context.Context, name string) (*mqadmin.QueueState
 
 	resp, err := c.runCommandJSON(ctx, runCommandJSONRequest{
 		Type:               mqscType,
-		Command:            "display",
+		Command:            mqscCommandDisplay,
 		Qualifier:          qualifierQLocal,
 		Name:               name,
 		ResponseParameters: append([]string(nil), queueDisplayParameters...),
@@ -169,7 +175,7 @@ func (c *Client) DefineQueue(ctx context.Context, spec mqadmin.QueueSpec) error 
 	params := defineQueueParameters(spec)
 	_, err = c.runCommandJSON(ctx, runCommandJSONRequest{
 		Type:       mqscType,
-		Command:    "define",
+		Command:    mqscCommandDefine,
 		Qualifier:  qualifierQLocal,
 		Name:       spec.Name,
 		Parameters: params,
@@ -195,9 +201,121 @@ func (c *Client) DeleteQueue(ctx context.Context, name string) error {
 
 	_, err = c.runCommandJSON(ctx, runCommandJSONRequest{
 		Type:      mqscType,
-		Command:   "delete",
+		Command:   mqscCommandDelete,
 		Qualifier: qualifierQLocal,
 		Name:      name,
+	})
+	if err != nil && errors.Is(err, mqadmin.ErrNotFound) {
+		err = nil
+		return nil
+	}
+	return err
+}
+
+// GetTopic returns the observed attributes of a topic.
+func (c *Client) GetTopic(ctx context.Context, name string) (*mqadmin.TopicState, error) {
+	var err error
+	defer func() { metrics.RecordMQOperation(metrics.MQOpGetTopic, err) }()
+
+	resp, err := c.runCommandJSON(ctx, runCommandJSONRequest{
+		Type:               mqscType,
+		Command:            mqscCommandDisplay,
+		Qualifier:          qualifierTopic,
+		Name:               name,
+		ResponseParameters: append([]string(nil), topicDisplayParameters...),
+	})
+	if err != nil {
+		return nil, err
+	}
+	attrs, err := resp.firstObjectAttributes()
+	if err != nil {
+		if nf := (*mqadmin.NotFoundError)(nil); errors.As(err, &nf) {
+			err = &mqadmin.NotFoundError{Object: name}
+		}
+		return nil, err
+	}
+	normalizeTopicAttributes(attrs)
+	return &mqadmin.TopicState{Name: name, Attributes: attrs}, nil
+}
+
+// DefineTopic creates or updates a topic.
+func (c *Client) DefineTopic(ctx context.Context, spec mqadmin.TopicSpec) error {
+	var err error
+	defer func() { metrics.RecordMQOperation(metrics.MQOpDefineTopic, err) }()
+
+	_, err = c.runCommandJSON(ctx, runCommandJSONRequest{
+		Type:       mqscType,
+		Command:    mqscCommandDefine,
+		Qualifier:  qualifierTopic,
+		Name:       spec.Name,
+		Parameters: defineTopicParameters(spec),
+	})
+	return err
+}
+
+// DeleteTopic removes a topic.
+func (c *Client) DeleteTopic(ctx context.Context, name string) error {
+	var err error
+	defer func() { metrics.RecordMQOperation(metrics.MQOpDeleteTopic, err) }()
+
+	_, err = c.runCommandJSON(ctx, runCommandJSONRequest{
+		Type:      mqscType,
+		Command:   mqscCommandDelete,
+		Qualifier: qualifierTopic,
+		Name:      name,
+	})
+	if err != nil && errors.Is(err, mqadmin.ErrNotFound) {
+		err = nil
+		return nil
+	}
+	return err
+}
+
+// GetChannel returns the observed attributes of a channel.
+func (c *Client) GetChannel(ctx context.Context, spec mqadmin.ChannelSpec) (*mqadmin.ChannelState, error) {
+	var err error
+	defer func() { metrics.RecordMQOperation(metrics.MQOpGetChannel, err) }()
+
+	resp, err := c.runCommandJSON(ctx, channelDisplayRequest(spec.Name, spec.Type))
+	if err != nil {
+		return nil, err
+	}
+	attrs, err := resp.firstObjectAttributes()
+	if err != nil {
+		if nf := (*mqadmin.NotFoundError)(nil); errors.As(err, &nf) {
+			err = &mqadmin.NotFoundError{Object: spec.Name}
+		}
+		return nil, err
+	}
+	return &mqadmin.ChannelState{Name: spec.Name, Attributes: attrs}, nil
+}
+
+// DefineChannel creates or updates a channel.
+func (c *Client) DefineChannel(ctx context.Context, spec mqadmin.ChannelSpec) error {
+	var err error
+	defer func() { metrics.RecordMQOperation(metrics.MQOpDefineChannel, err) }()
+
+	_, err = c.runCommandJSON(ctx, runCommandJSONRequest{
+		Type:       mqscType,
+		Command:    mqscCommandDefine,
+		Qualifier:  qualifierChannel,
+		Name:       spec.Name,
+		Parameters: defineChannelParameters(spec),
+	})
+	return err
+}
+
+// DeleteChannel removes a channel.
+func (c *Client) DeleteChannel(ctx context.Context, spec mqadmin.ChannelSpec) error {
+	var err error
+	defer func() { metrics.RecordMQOperation(metrics.MQOpDeleteChannel, err) }()
+
+	// mqweb rejects chltype on DELETE; omit parameters (AMQ8147E still maps to ErrNotFound).
+	_, err = c.runCommandJSON(ctx, runCommandJSONRequest{
+		Type:      mqscType,
+		Command:   mqscCommandDelete,
+		Qualifier: qualifierChannel,
+		Name:      spec.Name,
 	})
 	if err != nil && errors.Is(err, mqadmin.ErrNotFound) {
 		err = nil

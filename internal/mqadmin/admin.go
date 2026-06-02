@@ -19,6 +19,12 @@ type Admin interface {
 	GetQueue(ctx context.Context, name string) (*QueueState, error)
 	DefineQueue(ctx context.Context, spec QueueSpec) error
 	DeleteQueue(ctx context.Context, name string) error
+	GetTopic(ctx context.Context, name string) (*TopicState, error)
+	DefineTopic(ctx context.Context, spec TopicSpec) error
+	DeleteTopic(ctx context.Context, name string) error
+	GetChannel(ctx context.Context, spec ChannelSpec) (*ChannelState, error)
+	DefineChannel(ctx context.Context, spec ChannelSpec) error
+	DeleteChannel(ctx context.Context, spec ChannelSpec) error
 }
 
 // QueueSpec is the domain shape for defining a local queue via MQSC.
@@ -37,6 +43,38 @@ const (
 
 // QueueState is the observed MQSC attributes of a queue.
 type QueueState struct {
+	Name       string
+	Attributes map[string]string
+}
+
+// TopicSpec is the domain shape for defining a topic via MQSC.
+type TopicSpec struct {
+	Name       string
+	Attributes map[string]string
+}
+
+// TopicState is the observed MQSC attributes of a topic.
+type TopicState struct {
+	Name       string
+	Attributes map[string]string
+}
+
+// ChannelType mirrors supported channel kinds in the operator.
+type ChannelType string
+
+const (
+	ChannelTypeSvrconn ChannelType = "svrconn"
+)
+
+// ChannelSpec is the domain shape for defining a channel via MQSC.
+type ChannelSpec struct {
+	Name       string
+	Type       ChannelType
+	Attributes map[string]string
+}
+
+// ChannelState is the observed MQSC attributes of a channel.
+type ChannelState struct {
 	Name       string
 	Attributes map[string]string
 }
