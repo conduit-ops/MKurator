@@ -52,6 +52,14 @@ Kustomize install (`task deploy`) remains available for controller-runtime workf
 | `metrics.prometheusRule.enabled` | Create alerting rules | `false` |
 | `logging.level` | `KURATOR_LOG_LEVEL` | `info` |
 | `logging.format` | `KURATOR_LOG_FORMAT` | `json` |
+| `webhooks.enabled` | Install validating admission webhooks and webhook Service | `true` |
+| `webhooks.certManager.create` | Create cert-manager `Issuer` + `Certificate` for webhook TLS (requires [cert-manager](https://cert-manager.io/); installed on the [kind platform](../../hack/kind-cluster/README.md)) | `true` |
+| `webhooks.certManager.secretName` | Secret mounted at `/tmp/k8s-webhook-server/serving-certs` | `webhook-server-cert` |
+
+When `webhooks.enabled=true`, **cert-manager must be running** in the cluster so the
+serving certificate becomes Ready. Admission behaviour (invalid spec rejection,
+unknown-attribute warnings) is described in
+[docs/INSTALL_AND_USE.md](../../docs/INSTALL_AND_USE.md#how-kurator-manages-mq-objects).
 
 ## CRDs
 

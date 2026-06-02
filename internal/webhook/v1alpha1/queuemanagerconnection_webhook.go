@@ -12,7 +12,7 @@ import (
 )
 
 //nolint:lll // kubebuilder webhook marker is a single line
-// +kubebuilder:webhook:path=/validate-messaging-kurator-dev-v1alpha1-queuemanagerconnection,mutating=false,failurePolicy=fail,sideEffects=None,groups=messaging.kurator.dev,resources=queuemanagerconnections,verbs=create;update,versions=v1alpha1,name=vqueuemanagerconnection.kb.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/validate-messaging-kurator-dev-v1alpha1-queuemanagerconnection,mutating=false,failurePolicy=fail,sideEffects=None,groups=messaging.kurator.dev,resources=queuemanagerconnections,verbs=create;update;delete,versions=v1alpha1,name=vqueuemanagerconnection.kb.io,admissionReviewVersions=v1
 
 type queueManagerConnectionCustomValidator struct {
 	Client client.Reader
@@ -42,9 +42,13 @@ func (v *queueManagerConnectionCustomValidator) ValidateUpdate(
 }
 
 func (v *queueManagerConnectionCustomValidator) ValidateDelete(
-	_ context.Context,
-	_ *messagingv1alpha1.QueueManagerConnection,
+	ctx context.Context,
+	conn *messagingv1alpha1.QueueManagerConnection,
 ) (admission.Warnings, error) {
+	errs := validation.ValidateQueueManagerConnectionDelete(ctx, v.Client, conn)
+	if len(errs) > 0 {
+		return nil, validation.QueueManagerConnectionInvalid(validation.ObjectNameFromMeta(conn), errs)
+	}
 	return nil, nil
 }
 

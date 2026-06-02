@@ -3,6 +3,8 @@ package webhookv1alpha1
 import (
 	"context"
 	"path/filepath"
+	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -18,6 +20,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	messagingv1alpha1 "github.com/konih/kurator/api/v1alpha1"
@@ -60,7 +63,8 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 
 	mgr, err := ctrl.NewManager(webhookCfg, ctrl.Options{
-		Scheme: scheme.Scheme,
+		Scheme:  scheme.Scheme,
+		Metrics: metricsserver.Options{BindAddress: "0"},
 		WebhookServer: webhook.NewServer(webhook.Options{
 			Host:    webhookTestEnv.WebhookInstallOptions.LocalServingHost,
 			Port:    webhookTestEnv.WebhookInstallOptions.LocalServingPort,
@@ -153,6 +157,83 @@ var _ = Describe("Validating admission webhooks", func() {
 		}
 		Expect(webhookK8sClient.Create(ctx, q)).To(Succeed())
 	})
+
+	It("denies QueueManagerConnection delete when dependents exist", func() {
+		ctx := context.Background()
+		Expect(webhookK8sClient.Create(ctx, &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: ns},
+		})).To(Succeed())
+		conn := sampleWebhookConnection(ns, "qm1")
+		Expect(webhookK8sClient.Create(ctx, conn)).To(Succeed())
+
+		q := &messagingv1alpha1.Queue{
+			ObjectMeta: metav1.ObjectMeta{Name: "dep-queue", Namespace: ns},
+			Spec: messagingv1alpha1.QueueSpec{
+				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+				QueueName:     "APP.ORDERS",
+			},
+		}
+		Expect(webhookK8sClient.Create(ctx, q)).To(Succeed())
+
+		err := webhookK8sClient.Delete(ctx, conn)
+		Expect(err).To(HaveOccurred())
+		Expect(apierrors.IsInvalid(err)).To(BeTrue())
+		Expect(err.Error()).To(ContainSubstring("dep-queue"))
+	})
+
+	It("allows QueueManagerConnection delete after dependents removed", func() {
+		ctx := context.Background()
+		Expect(webhookK8sClient.Create(ctx, &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: ns},
+		})).To(Succeed())
+		conn := sampleWebhookConnection(ns, "qm1")
+		Expect(webhookK8sClient.Create(ctx, conn)).To(Succeed())
+
+		q := &messagingv1alpha1.Queue{
+			ObjectMeta: metav1.ObjectMeta{Name: "dep-queue", Namespace: ns},
+			Spec: messagingv1alpha1.QueueSpec{
+				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+				QueueName:     "APP.ORDERS",
+			},
+		}
+		Expect(webhookK8sClient.Create(ctx, q)).To(Succeed())
+		Expect(webhookK8sClient.Delete(ctx, q)).To(Succeed())
+		Expect(webhookK8sClient.Delete(ctx, conn)).To(Succeed())
+	})
+
+	// Requires envtest K8s ≥ 1.27 for admission warning propagation to the client.
+	It("returns admission warnings for unknown queue attribute keys", func() {
+		ctx := context.Background()
+		Expect(webhookK8sClient.Create(ctx, &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: ns},
+		})).To(Succeed())
+		conn := sampleWebhookConnection(ns, "qm1")
+		Expect(webhookK8sClient.Create(ctx, conn)).To(Succeed())
+
+		var (
+			mu       sync.Mutex
+			warnings []string
+		)
+		warningCfg := rest.CopyConfig(webhookCfg)
+		warningCfg.WarningHandler = warningCapture{store: &warnings, mu: &mu}
+		warningClient, err := client.New(warningCfg, client.Options{Scheme: scheme.Scheme})
+		Expect(err).NotTo(HaveOccurred())
+
+		q := &messagingv1alpha1.Queue{
+			ObjectMeta: metav1.ObjectMeta{Name: "warn-queue", Namespace: ns},
+			Spec: messagingv1alpha1.QueueSpec{
+				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+				QueueName:     "APP.WARN",
+				Attributes:    map[string]string{"notreal": "x"},
+			},
+		}
+		Expect(warningClient.Create(ctx, q)).To(Succeed())
+
+		mu.Lock()
+		defer mu.Unlock()
+		Expect(warnings).NotTo(BeEmpty())
+		Expect(strings.Join(warnings, " ")).To(ContainSubstring("notreal"))
+	})
 })
 
 func sampleWebhookConnection(ns, name string) *messagingv1alpha1.QueueManagerConnection {
@@ -174,4 +255,15 @@ func cleanupWebhookNamespace(ctx context.Context, ns string) {
 	_ = webhookK8sClient.DeleteAllOf(ctx, &messagingv1alpha1.Channel{}, client.InNamespace(ns))
 	_ = webhookK8sClient.DeleteAllOf(ctx, &messagingv1alpha1.QueueManagerConnection{}, client.InNamespace(ns))
 	_ = webhookK8sClient.DeleteAllOf(ctx, &corev1.Secret{}, client.InNamespace(ns))
+}
+
+type warningCapture struct {
+	store *[]string
+	mu    *sync.Mutex
+}
+
+func (w warningCapture) HandleWarningHeader(_ int, _ string, text string) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	*w.store = append(*w.store, text)
 }

@@ -70,8 +70,22 @@ func TestChannelWebhookValidateUpdate(t *testing.T) {
 }
 
 func TestQueueManagerConnectionWebhookValidateDelete(t *testing.T) {
-	v := &queueManagerConnectionCustomValidator{}
-	warnings, err := v.ValidateDelete(context.Background(), &messagingv1alpha1.QueueManagerConnection{})
+	scheme := runtime.NewScheme()
+	if err := messagingv1alpha1.AddToScheme(scheme); err != nil {
+		t.Fatalf("add scheme: %v", err)
+	}
+	conn := &messagingv1alpha1.QueueManagerConnection{
+		ObjectMeta: metav1.ObjectMeta{Name: "qm1", Namespace: "ns"},
+		Spec: messagingv1alpha1.QueueManagerConnectionSpec{
+			QueueManager:         "QM1",
+			Endpoint:             "https://mq.example:9443",
+			CredentialsSecretRef: messagingv1alpha1.SecretReference{Name: "creds"},
+		},
+	}
+	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(conn).Build()
+	v := &queueManagerConnectionCustomValidator{Client: cl}
+
+	warnings, err := v.ValidateDelete(context.Background(), conn)
 	if err != nil {
 		t.Fatalf("ValidateDelete: %v", err)
 	}
