@@ -179,9 +179,10 @@ tasks:
       KUBECONFIG: "{{.KUBECONFIG}}"
 
   deploy:samples:
-    desc: Apply sample Secret, QueueManagerConnection, Queue, Topic, and Channel
+    desc: Apply sample Secret + all CRs (requires operator CRDs; use after deploy:helm)
     cmds:
-      - kubectl apply -k charts/kurator/samples/resources/
+      - kubectl create namespace kurator-system --dry-run=client -o yaml | kubectl apply -f -
+      - kubectl apply --server-side -k charts/kurator/samples/resources/
     env:
       KUBECONFIG: "{{.KUBECONFIG}}"
 

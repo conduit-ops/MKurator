@@ -6,6 +6,24 @@ production.
 
 Full install and usage guide: [docs/INSTALL_AND_USE.md](../../docs/INSTALL_AND_USE.md).
 
+## Preferred apply (kind / local dev)
+
+After the operator is installed (`task deploy:helm` or `task local:up`), apply the
+credentials Secret and all sample CRs in one step:
+
+```sh
+task deploy:samples
+kubectl get qmc,mq,tp,chl,car,auth -n kurator-system
+```
+
+**Prerequisites:** cluster reachable (Task defaults `KUBECONFIG` to
+`hack/kind-cluster/.state/kubeconfig.yaml`), operator CRDs installed, and
+`kurator-system` namespace (created automatically by `deploy:samples` or
+`deploy:helm`).
+
+For manual step-by-step apply or production adaptation, see [Apply order](#apply-order)
+below.
+
 ## Canonical source and Helm copies
 
 **`config/samples/`** is the Kubebuilder canonical tree (annotated filenames, optional
@@ -48,10 +66,6 @@ not bundled in `config/samples/`):
 kubectl apply -f charts/kurator/samples/resources/mq-credentials-secret.yaml
 kubectl apply -k config/samples/
 ```
-
-Or use `task deploy:samples` when working against the local kind cluster.
-
----
 
 ## `messaging_v1alpha1_queuemanagerconnection.yaml`
 

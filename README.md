@@ -113,14 +113,15 @@ Sample YAML with annotations:
 [config/samples/README.md](config/samples/README.md).
 
 ```sh
-# After operator install — apply samples (Secret + CRs; see config/samples/README.md)
+# After task deploy:helm or task local:up — preferred one-shot sample apply:
 task deploy:samples
 kubectl get qmc,mq,tp,chl,car,auth -n kurator-system
 ```
 
-`task deploy:samples` applies `charts/kurator/samples/resources/` (includes the
-credentials Secret). The Kustomize tree under `config/samples/` is annotated
-reference YAML without a Secret — apply a Secret first or use `task deploy:samples`.
+**`task deploy:samples`** is the supported path on kind: it ensures the
+`kurator-system` namespace exists and server-side-applies
+`charts/kurator/samples/resources/` (Secret + all sample CRs). Annotated reference
+YAML lives under `config/samples/` — edit there, then `task samples:sync`.
 
 ## Local development (contributors)
 
