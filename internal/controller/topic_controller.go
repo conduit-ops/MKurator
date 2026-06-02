@@ -126,13 +126,7 @@ func (r *TopicReconciler) ensureTopic(ctx context.Context, admin mqadmin.Admin, 
 }
 
 func topicNeedsUpdate(desired mqadmin.TopicSpec, observed *mqadmin.TopicState) bool {
-	for k, v := range desired.Attributes {
-		key := strings.ToLower(k)
-		if observed.Attributes[key] != v {
-			return true
-		}
-	}
-	return false
+	return mqadmin.AttributesNeedUpdate(desired.Attributes, observed.Attributes)
 }
 
 func (r *TopicReconciler) handleDeletion(

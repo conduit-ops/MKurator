@@ -60,7 +60,7 @@ spec:
                   type: string
                 description: |-
                   Attributes map to MQSC parameters (lowercase keys in mqweb runCommandJSON).
-                  Common keys: trptype, descr, sharecnv, maxmsgl, mcauser.
+                  Drift-checked vs define-only keys: docs/ATTRIBUTE_RECONCILIATION.md.
                 type: object
               channelName:
                 description: ChannelName is the IBM MQ channel name (e.g. ORDERS.APP).

@@ -35,13 +35,14 @@ var channelNumericParameters = map[string]struct{}{
 }
 
 // topicDisplayParameters lists attributes safe for DISPLAY topic on IBM MQ 9.4.x
-// mqweb (pubscope/subscope may return MQWB0120E on some QM levels).
+// mqweb. pubscope/subscope are included for drift on 9.4; omit from this slice if
+// your QM returns MQWB0120E (see docs/ATTRIBUTE_RECONCILIATION.md).
 var topicDisplayParameters = []string{
-	attrTopicStr, attrDescr, "pub", "sub", "defpsist",
+	attrTopicStr, attrDescr, "pub", "sub", "defpsist", "pubscope", "subscope",
 }
 
 var channelDisplayParameters = []string{
-	attrDescr, "trptype", "sharecnv", attrMaxMsgl, "mcauser",
+	attrDescr, "trptype", "sharecnv", attrMaxMsgl, "mcauser", "maxinst", "maxinstc",
 }
 
 func defineTopicParameters(spec mqadmin.TopicSpec) map[string]any {

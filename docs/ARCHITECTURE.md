@@ -2,8 +2,9 @@
 
 This document describes the design of **Kurator**: its
 components, the custom resources it manages, the reconcile flow, and the local
-development topology. For conventions and tooling see
-[../AGENTS.md](../AGENTS.md); for the delivery plan see [ROADMAP.md](ROADMAP.md).
+development topology. For conventions and tooling see [DEVELOPMENT.md](DEVELOPMENT.md); for the delivery
+plan see [ROADMAP.md](ROADMAP.md). Attribute DEFINE vs drift behaviour:
+[ATTRIBUTE_RECONCILIATION.md](ATTRIBUTE_RECONCILIATION.md).
 
 ## Scope
 
@@ -12,10 +13,10 @@ Manager** declaratively. It is explicitly **not** responsible for deploying or
 operating Queue Manager installations. The Queue Manager already exists and
 exposes the IBM MQ Administrative REST API (`mqweb`).
 
-The initial `v1alpha1` API targets two resources:
+The initial `v1alpha1` API targets:
 
 - `QueueManagerConnection` — how to reach a Queue Manager (endpoint + creds).
-- `Queue` — a queue to maintain on a referenced Queue Manager.
+- `Queue`, `Topic`, `Channel` — MQSC objects on a referenced Queue Manager.
 
 ## Components
 

@@ -19,7 +19,7 @@ type TopicSpec struct {
 	TopicName string `json:"topicName"`
 
 	// Attributes map to MQSC parameters (lowercase keys in mqweb runCommandJSON).
-	// Common keys: topstr, descr, pub, sub, defpsist, pubscope, subscope.
+	// Drift-checked vs define-only keys: docs/ATTRIBUTE_RECONCILIATION.md.
 	// +optional
 	Attributes map[string]string `json:"attributes,omitempty"`
 }

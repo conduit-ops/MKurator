@@ -53,6 +53,39 @@ func TestDefineChannelParameters(t *testing.T) {
 	}
 }
 
+func TestChannelDisplayParametersIncludeConnectionLimits(t *testing.T) {
+	t.Parallel()
+	want := map[string]struct{}{"maxinst": {}, "maxinstc": {}}
+	for k := range want {
+		found := false
+		for _, p := range channelDisplayParameters {
+			if p == k {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Fatalf("%q missing from channelDisplayParameters", k)
+		}
+	}
+}
+
+func TestTopicDisplayParametersIncludeScope(t *testing.T) {
+	t.Parallel()
+	for _, p := range []string{"pubscope", "subscope"} {
+		found := false
+		for _, q := range topicDisplayParameters {
+			if q == p {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Fatalf("%q missing from topicDisplayParameters", p)
+		}
+	}
+}
+
 func TestDefineTopicParameters(t *testing.T) {
 	t.Parallel()
 	params := defineTopicParameters(mqadmin.TopicSpec{

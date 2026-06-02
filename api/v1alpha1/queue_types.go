@@ -5,13 +5,11 @@ import (
 )
 
 // QueueType is the IBM MQ queue object type to manage.
-// +kubebuilder:validation:Enum=local;alias;remote
+// +kubebuilder:validation:Enum=local
 type QueueType string
 
 const (
-	QueueTypeLocal  QueueType = "local"
-	QueueTypeAlias  QueueType = "alias"
-	QueueTypeRemote QueueType = "remote"
+	QueueTypeLocal QueueType = "local"
 )
 
 // QueueSpec defines a queue to maintain on a referenced queue manager.
@@ -26,12 +24,13 @@ type QueueSpec struct {
 	QueueName string `json:"queueName"`
 
 	// Type is the queue kind to define. Only local queues are reconciled in v1alpha1.
+	// Alias and remote queues are planned; see docs/ROADMAP.md.
 	// +kubebuilder:default=local
 	// +optional
 	Type QueueType `json:"type,omitempty"`
 
 	// Attributes map to MQSC parameters (lowercase keys in mqweb runCommandJSON).
-	// Common keys: maxdepth, descr, defpsist (maxmsglen on define only — not displayable via mqweb JSON on 9.4).
+	// Drift-checked vs define-only keys: docs/ATTRIBUTE_RECONCILIATION.md.
 	// +optional
 	Attributes map[string]string `json:"attributes,omitempty"`
 }

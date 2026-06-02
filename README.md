@@ -113,6 +113,7 @@ Defaults match the local platform: Queue Manager **`QM1`**, mqweb
 - [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) — prerequisites, local platform, deploy, test tiers.
 - [hack/kind-cluster/README.md](hack/kind-cluster/README.md) — kind/Terraform/MQ platform only.
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — components, runtime, CRDs, reconcile flow, security.
+- [docs/ATTRIBUTE_RECONCILIATION.md](docs/ATTRIBUTE_RECONCILIATION.md) — which MQ attributes are drift-checked vs define-only.
 - [docs/NON_FUNCTIONAL_REQUIREMENTS.md](docs/NON_FUNCTIONAL_REQUIREMENTS.md) — quality bars.
 - [docs/CICD.md](docs/CICD.md) — CI/CD pipeline design.
 - [docs/adr/](docs/adr/) — architecture decision records.

@@ -272,7 +272,7 @@ func TestQueueReconciler_UnsupportedType(t *testing.T) {
 		Spec: messagingv1alpha1.QueueSpec{
 			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
 			QueueName:     "APP.ORDERS",
-			Type:          messagingv1alpha1.QueueTypeAlias,
+			Type:          messagingv1alpha1.QueueType("alias"),
 		},
 	}
 
