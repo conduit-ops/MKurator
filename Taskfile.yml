@@ -205,6 +205,11 @@ tasks:
     cmds:
       - bash hack/helm-sync-crds.sh
 
+  samples:sync:
+    desc: Sync config/samples CR YAML into charts/kurator/samples/resources
+    cmds:
+      - bash hack/sync-samples.sh
+
   helm:lint:
     desc: Lint the publishable Kurator Helm chart
     cmds:

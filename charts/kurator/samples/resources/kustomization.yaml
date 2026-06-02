@@ -11,3 +11,5 @@ resources:
   - queue-remote.yaml
   - topic.yaml
   - channel.yaml
+  - channelauthrule.yaml
+  - authorityrecord.yaml
