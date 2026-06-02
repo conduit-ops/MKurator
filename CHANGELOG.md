@@ -7,11 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Release notes are generated from [Conventional Commits](https://www.conventionalcommits.org/)
 on the default branch using [git-cliff](https://git-cliff.org/).
 
-## [Unreleased]
+## [0.3.0](https://github.com/konih/kurator/compare/v0.2.2..v0.3.0) - 2026-06-02
 
 ### Bug Fixes
 
 - **webhook:** Fix unit test race under -race [cbf16da](https://github.com/konih/kurator/commit/cbf16da462b2e7095fe1a35b65ca7c49a6f217cf)
+
+
+### Features
+
+- **controller:** Expand Kubernetes event emission [5472e56](https://github.com/konih/kurator/commit/5472e561013c310b0097becfbc0a6636ffa87536)
 
 
 ### Refactoring
