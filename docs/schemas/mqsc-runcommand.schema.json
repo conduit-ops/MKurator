@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/IBM-Message-Queue-Operator/schemas/mqsc-runcommand.json",
+  "title": "IBM MQ REST API - /admin/action/qmgr/{qmgrName}/mqsc request bodies",
+  "description": "Stable request shapes for the mqweb administrative MQSC endpoint. Derived from IBM MQ 9.2+ documentation. The full mqweb Swagger document is version-specific and must be fetched from /ibm/api/docs on a running server.",
+  "oneOf": [
+    { "$ref": "#/$defs/runCommandPlainText" },
+    { "$ref": "#/$defs/runCommandJSON" }
+  ],
+  "$defs": {
+    "runCommandPlainText": {
+      "type": "object",
+      "required": ["type", "parameters"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "runCommand" },
+        "parameters": {
+          "type": "object",
+          "required": ["command"],
+          "additionalProperties": false,
+          "properties": {
+            "command": {
+              "type": "string",
+              "description": "Full MQSC command as typed at runmqsc, e.g. DEFINE QLOCAL(APP.IN) REPLACE"
+            }
+          }
+        }
+      }
+    },
+    "runCommandJSON": {
+      "type": "object",
+      "required": ["type", "command"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "runCommandJSON" },
+        "command": {
+          "type": "string",
+          "enum": [
+            "alter", "archive", "backup", "clear", "define", "delete", "display",
+            "move", "ping", "purge", "recover", "refresh", "reset", "resolve",
+            "resume", "rverify", "set", "start", "stop", "suspend"
+          ]
+        },
+        "qualifier": {
+          "type": "string",
+          "description": "MQSC secondary keyword, e.g. qlocal, channel, authrec, topic, sub, listener"
+        },
+        "name": {
+          "type": "string",
+          "description": "Primary object name argument"
+        },
+        "responseParameters": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "For DISPLAY: attribute names to return, or [\"all\"]"
+        },
+        "parameters": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "MQSC parameters as lowercase JSON keys (see IBM MQ REST API reference)"
+        }
+      }
+    },
+    "commandResponse": {
+      "type": "object",
+      "properties": {
+        "commandResponse": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "completionCode": { "type": "integer" },
+              "reasonCode": { "type": "integer" },
+              "message": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "text": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "Alternate message field name in some responses"
+              },
+              "parameters": {
+                "type": "object",
+                "additionalProperties": true,
+                "description": "Object attributes returned from DISPLAY commands"
+              }
+            }
+          }
+        },
+        "overallCompletionCode": { "type": "integer" },
+        "overallReasonCode": { "type": "integer" },
+        "overAllReasonCode": { "type": "integer", "description": "Typo variant seen in some responses" }
+      }
+    },
+    "restError": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "action": { "type": "string" },
+              "completionCode": { "type": "integer" },
+              "explanation": { "type": "string" },
+              "message": { "type": "string" },
+              "msgId": { "type": "string" },
+              "reasonCode": { "type": "integer" },
+              "type": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  }
+}
