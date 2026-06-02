@@ -19,12 +19,9 @@ Tracking work to finish the **Phase 5 auth** release after CRD/reconciler code l
 
 ## E2e (required for Phase 5 exit)
 
-- [ ] **KUBECONFIG** — force kind kubeconfig in `hack/ci/run-e2e.sh` (or BeforeSuite) so
-  cert-manager install does not hit a broken default `kubectl` context
-- [ ] **ChannelAuthRule e2e** — apply CR after channel fixture; assert `SET CHLAUTH` via mqweb;
-  delete CR and assert rule removed (or idempotent not-found)
-- [ ] **AuthorityRecord e2e** — apply CR for queue profile + principal; assert mqweb/OAM effect;
-  delete and assert cleanup
+- [x] **KUBECONFIG** — force kind kubeconfig in `hack/ci/run-e2e.sh` before Ginkgo
+- [x] **ChannelAuthRule e2e** — apply CR after channel fixture; assert CHLAUTH; delete
+- [x] **AuthorityRecord e2e** — apply CR for queue profile + principal; delete cleanup
 - [ ] **Webhook negative** (optional) — invalid auth CR rejected on `kubectl apply`
 - [ ] `task ci:e2e` green locally
 
