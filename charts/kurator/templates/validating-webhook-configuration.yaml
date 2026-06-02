@@ -22,7 +22,7 @@ webhooks:
     rules:
       - apiGroups: [messaging.kurator.dev]
         apiVersions: [v1alpha1]
-        operations: [CREATE, UPDATE]
+        operations: [CREATE, UPDATE, DELETE]
         resources: [queuemanagerconnections]
     sideEffects: None
   - admissionReviewVersions: [v1]

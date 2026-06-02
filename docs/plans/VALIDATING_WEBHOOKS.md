@@ -1,6 +1,6 @@
 # Plan: Validating admission webhooks (pre–Phase 5)
 
-**Status:** Draft for review — do not implement until approved.  
+**Status:** Implemented (2026-06-02). Follow-ups: [VALIDATING_WEBHOOKS_FOLLOWUPS.md](VALIDATING_WEBHOOKS_FOLLOWUPS.md).  
 **Audience:** Future implementer or agent.  
 **Schedule:** Complete before [Phase 5 — User & authority management](../ROADMAP.md#phase-5--user--authority-management) (CHLAUTH / AUTHREC CRDs).
 
@@ -30,19 +30,16 @@
 
 ---
 
-## 2. Current state (baseline)
+## 2. As-built summary
 
-| Area | Finding |
-|------|---------|
-| **`cmd/main.go`** | `webhook.NewServer` wired; cert flags (`--webhook-cert-path`, etc.); **no** `SetupWebhookWithManager` / handler registration (`// +kubebuilder:scaffold:builder` empty). |
-| **API types** | OpenAPI: required fields, `endpoint` `^https://`, `Queue.type` / `Channel.type` enums, `MinLength` on names. **No** programmatic CEL for `connectionRef` existence or queue-type attribute requirements. |
-| **Controllers** | `resolveConnection` + `waitForConnectionReady` on Queue/Topic/Channel; missing QMC → `Synced=False` (not admission deny). `Channel` rejects non-`svrconn` at reconcile via `TerminalError` (OpenAPI enum already limits to `svrconn`). Queue type errors surface from `mqrest.validateQueueType` at MQ call time. **No** check that alias has `targq` or remote has `xmitq`/`rqmname` before define. |
-| **Manifests** | `config/default/kustomization.yaml`: `[WEBHOOK]` and `[CERTMANAGER]` sections **commented**; `../webhook` and `../certmanager` **not present** in repo (Kubebuilder stubs never generated). |
-| **`config/manager/manager.yaml`** | No webhook container port (9443) or cert volume — patches exist only as commented `manager_webhook_patch.yaml` references. |
-| **Helm** | `charts/kurator/templates/deployment.yaml` — no webhook port/certs/Service. |
-| **Tests** | `internal/controller/suite_test.go`: envtest with CRDs only, **no** webhook install. E2e: `setupCertManager()` in `test/e2e/e2e_suite_test.go` (for future webhooks); scaffold comments `e2e-webhooks-checks`. |
-| **Tooling** | `task manifests` / `hack/verify.sh` already pass `webhook` to `controller-gen`; no webhook YAML until handlers exist. |
-| **Kind / cert-manager** | `hack/kind-cluster/terraform/cert-manager.tf` installs cert-manager — **platform ready**, operator **not** wired. |
+| Area | State |
+|------|--------|
+| **Code** | `internal/validation` + thin `internal/webhook/v1alpha1` validators for all four v1alpha1 CRDs; `failurePolicy: Fail`; no mqweb in admission. |
+| **Rules (§3)** | `connectionRef` existence / not deleting; QMC Secret refs; MQ object names; queue alias/remote required attrs; channel `svrconn`; unknown-attribute **warnings** on Queue/Topic/Channel; QMC delete blocked when dependents exist. |
+| **Kustomize** | `config/webhook`, `config/certmanager`, manager patch, `config/default` `[WEBHOOK]` / `[CERTMANAGER]` enabled (`kurator-` name prefix). |
+| **Helm** | `webhooks.enabled` (default `true`), webhook Service, `ValidatingWebhookConfiguration`, cert-manager `Certificate`/`Issuer`; deployment mounts `webhook-server-cert`. |
+| **Tests** | Table-driven `internal/validation/*_test.go`; envtest admission in `internal/webhook/v1alpha1/suite_test.go` (deny/allow + warnings); e2e negative apply in `test/e2e/e2e_test.go`. |
+| **Docs** | `docs/ROADMAP.md` Phase 4b, `ARCHITECTURE.md`, `INSTALL_AND_USE.md`, `NON_FUNCTIONAL_REQUIREMENTS.md` (API-2). |
 
 ---
 
@@ -70,7 +67,7 @@ Use `admission.Warnings` (Kubernetes 1.27+) only where marked “warning” belo
 | **`spec.queueManager` non-empty** | Error | OpenAPI already. |
 | **Optional: credentials Secret exists** | Error (recommended) or Warning | `Get` Secret in same namespace. **Recommend Error** for fail-fast UX; requires webhook has same Secret RBAC as reconciler (already `get` on secrets). |
 | **Optional: `spec.tls.caSecretRef` Secret exists** when set | Error | Same as above. |
-| **Optional: block delete while dependents exist** | Error | On `DELETE`, list Queue/Topic/Channel in namespace with matching `connectionRef`; deny if any exist. **Defer to PR4+** if scope tight — document ownerReferences alternative (not used today). |
+| **Optional: block delete while dependents exist** | Error | On `DELETE`, list Queue/Topic/Channel in namespace with matching `connectionRef`; deny if any exist. **Implemented** in `ValidateQueueManagerConnectionDelete`. |
 
 ### 3.3 `Queue`
 
@@ -313,16 +310,18 @@ Change verification for API-2 from “envtest” to “OpenAPI + validating webh
 
 ## 9. Acceptance criteria (done before Phase 5)
 
-- [ ] `ValidatingWebhookConfiguration` deployed by default (`task deploy` / Helm `webhooks.enabled=true`).
-- [ ] cert-manager `Certificate` Ready; pod mounts serving cert; no TLS errors in manager logs on webhook requests.
-- [ ] All four CR kinds have validating webhooks registered and `failurePolicy: Fail`.
-- [ ] Rules in §3 implemented (optional items documented if deferred).
-- [ ] `internal/validation` covered by table-driven unit tests.
-- [ ] Envtest proves at least: (1) Queue with missing `connectionRef` target denied, (2) alias Queue without `targq` denied, (3) valid sample allowed.
-- [ ] `task verify`, `task lint`, `task test:run` green; `internal/` coverage ≥85%.
-- [ ] One e2e or documented manual check: invalid manifest fails `kubectl apply`.
-- [ ] No mutating webhooks; no mqweb in admission path.
-- [ ] `docs/ROADMAP.md` / `AGENTS.md` updated (PR4) after plan approval.
+- [x] `ValidatingWebhookConfiguration` deployed by default (`task deploy` / Helm `webhooks.enabled=true`).
+- [x] cert-manager `Certificate` Ready; pod mounts serving cert; no TLS errors in manager logs on webhook requests.
+- [x] All four CR kinds have validating webhooks registered and `failurePolicy: Fail`.
+- [x] Rules in §3 implemented (QMC delete-with-dependents and envtest warning assert completed in follow-ups).
+- [x] `internal/validation` covered by table-driven unit tests.
+- [x] Envtest proves at least: (1) Queue with missing `connectionRef` target denied, (2) alias Queue without `targq` denied, (3) valid sample allowed, (4) unknown queue attribute warning returned.
+- [x] `task verify`, `task lint`, `task test:run` green; `internal/` coverage ≥85%.
+- [x] One e2e or documented manual check: invalid manifest fails `kubectl apply`.
+- [x] No mutating webhooks; no mqweb in admission path.
+- [x] `docs/ROADMAP.md` / `AGENTS.md` updated (PR4) after plan approval.
+
+Deferred / out of band: Helm-only e2e admission path (P2.4), `GetEventRecorderFor` migration (P2.3) — see [VALIDATING_WEBHOOKS_FOLLOWUPS.md](VALIDATING_WEBHOOKS_FOLLOWUPS.md).
 
 ---
 
@@ -331,6 +330,7 @@ Change verification for API-2 from “envtest” to “OpenAPI + validating webh
 - [Kubebuilder — Admission webhooks](https://book.kubebuilder.io/cronjob-tutorial/webhook-implementation.html)
 - [controller-runtime webhook](https://pkg.go.dev/sigs.k8s.io/controller-runtime/pkg/webhook)
 - [ATTRIBUTE_RECONCILIATION.md](../ATTRIBUTE_RECONCILIATION.md) — attribute allow-lists for warnings
+- [VALIDATING_WEBHOOKS_FOLLOWUPS.md](VALIDATING_WEBHOOKS_FOLLOWUPS.md) — post-implementation follow-ups and gap analysis
 - [ARCHITECTURE.md](../ARCHITECTURE.md) — thin reconcilers, error classes
 - [PHASE5_AUTH_SKETCH.md](../PHASE5_AUTH_SKETCH.md) — out of scope until Phase 5 CRDs exist
 

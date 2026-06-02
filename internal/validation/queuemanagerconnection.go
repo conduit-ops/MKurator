@@ -49,6 +49,88 @@ func ValidateQueueManagerConnectionSpec(
 	return errs
 }
 
+// ValidateQueueManagerConnectionDelete denies delete when Queue, Topic, or Channel CRs
+// in the same namespace reference this connection via spec.connectionRef.name.
+func ValidateQueueManagerConnectionDelete(
+	ctx context.Context,
+	reader client.Reader,
+	conn *messagingv1alpha1.QueueManagerConnection,
+) field.ErrorList {
+	path := field.NewPath("metadata").Child("name")
+	dependents, errs := listConnectionDependents(ctx, reader, conn.Namespace, conn.Name)
+	if len(errs) > 0 {
+		return errs
+	}
+	if len(dependents) == 0 {
+		return nil
+	}
+	return field.ErrorList{
+		field.Invalid(path, conn.Name, fmt.Sprintf(
+			"cannot delete QueueManagerConnection %q: %s; delete or re-point dependents first",
+			conn.Name, formatDependents(dependents),
+		)),
+	}
+}
+
+type connectionDependent struct {
+	kind string
+	name string
+}
+
+func listConnectionDependents(
+	ctx context.Context,
+	reader client.Reader,
+	namespace, connName string,
+) ([]connectionDependent, field.ErrorList) {
+	path := field.NewPath("metadata").Child("name")
+	var dependents []connectionDependent
+
+	var queues messagingv1alpha1.QueueList
+	if err := reader.List(ctx, &queues, client.InNamespace(namespace)); err != nil {
+		return nil, field.ErrorList{
+			field.InternalError(path, fmt.Errorf("list Queues: %w", err)),
+		}
+	}
+	for i := range queues.Items {
+		if queues.Items[i].Spec.ConnectionRef.Name == connName {
+			dependents = append(dependents, connectionDependent{kind: "Queue", name: queues.Items[i].Name})
+		}
+	}
+
+	var topics messagingv1alpha1.TopicList
+	if err := reader.List(ctx, &topics, client.InNamespace(namespace)); err != nil {
+		return nil, field.ErrorList{
+			field.InternalError(path, fmt.Errorf("list Topics: %w", err)),
+		}
+	}
+	for i := range topics.Items {
+		if topics.Items[i].Spec.ConnectionRef.Name == connName {
+			dependents = append(dependents, connectionDependent{kind: "Topic", name: topics.Items[i].Name})
+		}
+	}
+
+	var channels messagingv1alpha1.ChannelList
+	if err := reader.List(ctx, &channels, client.InNamespace(namespace)); err != nil {
+		return nil, field.ErrorList{
+			field.InternalError(path, fmt.Errorf("list Channels: %w", err)),
+		}
+	}
+	for i := range channels.Items {
+		if channels.Items[i].Spec.ConnectionRef.Name == connName {
+			dependents = append(dependents, connectionDependent{kind: "Channel", name: channels.Items[i].Name})
+		}
+	}
+	return dependents, nil
+}
+
+func formatDependents(dependents []connectionDependent) string {
+	parts := make([]string, 0, len(dependents))
+	for _, d := range dependents {
+		parts = append(parts, fmt.Sprintf("%s %q", d.kind, d.name))
+	}
+	return strings.Join(parts, ", ")
+}
+
 func validateSecretExists(
 	ctx context.Context,
 	reader client.Reader,

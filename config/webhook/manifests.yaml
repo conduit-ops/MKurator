@@ -61,6 +61,7 @@ webhooks:
     operations:
     - CREATE
     - UPDATE
+    - DELETE
     resources:
     - queuemanagerconnections
   sideEffects: None
