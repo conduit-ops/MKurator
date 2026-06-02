@@ -58,3 +58,28 @@ tasks:
         sh: echo "${KUBECONFIG:-$(pwd)/hack/kind-cluster/.state/kubeconfig.yaml}"
     cmds:
       - go test -tags=e2e ./test/e2e/... -race -v
+
+  integration:
+    desc: Run IBM MQ integration tests (requires KURATOR_INTEGRATION_MQ=1 and live mqweb; use task mq:integration:up)
+    env:
+      CGO_ENABLED: "1"
+      KURATOR_INTEGRATION_MQ: "1"
+      KURATOR_INTEGRATION_MQ_ENDPOINT:
+        sh: echo "${KURATOR_INTEGRATION_MQ_ENDPOINT:-https://127.0.0.1:9443}"
+      KURATOR_INTEGRATION_MQ_QMGR:
+        sh: echo "${KURATOR_INTEGRATION_MQ_QMGR:-QM1}"
+      KURATOR_INTEGRATION_MQ_USER:
+        sh: echo "${KURATOR_INTEGRATION_MQ_USER:-admin}"
+      KURATOR_INTEGRATION_MQ_PASSWORD:
+        sh: echo "${KURATOR_INTEGRATION_MQ_PASSWORD:-passw0rd}"
+      KURATOR_INTEGRATION_MQ_INSECURE_TLS:
+        sh: echo "${KURATOR_INTEGRATION_MQ_INSECURE_TLS:-true}"
+    cmds:
+      - go test -tags=integration -race -v ./test/integration/mq/...
+
+  integration:local:
+    desc: Start Docker MQ, wait for mqweb, run integration tests (container left running)
+    cmds:
+      - task: mq:integration:up
+      - task: mq:integration:wait
+      - task: test:integration

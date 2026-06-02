@@ -37,7 +37,7 @@ flowchart LR
 
 | Event | Runs |
 |-------|------|
-| PR / push to default branch | `ci.yaml`: verify, lint, test, build, govulncheck; `e2e.yaml`: kind + IBM MQ e2e |
+| PR / push to default branch | `ci.yaml`: verify, lint, test, build, govulncheck; `integration.yaml`: Docker IBM MQ; `e2e.yaml`: kind + IBM MQ e2e |
 | Tag `v*` | `release` (build + push image, publish install manifests) + image scan |
 | Schedule (e.g. weekly) | `govulncheck`, image scan, dependency bot |
 
@@ -68,6 +68,13 @@ built but not pushed.
 ### `govulncheck`
 `govulncheck ./...` against code and dependencies. Runs on PRs and on a
 schedule so newly disclosed CVEs surface even without code changes.
+
+### `integration`
+Dedicated workflow [`.github/workflows/integration.yaml`](../.github/workflows/integration.yaml)
+on PRs and `main`: `task ci:integration` (Docker Compose IBM MQ, mqweb wait,
+`task test:integration`, teardown). Exercises `mqadmin.Admin` queue operations
+against live mqweb without kind. Local equivalent: `task test:integration:local`
+or `task ci:integration`.
 
 ### `e2e`
 Dedicated workflow [`.github/workflows/e2e.yaml`](../.github/workflows/e2e.yaml)

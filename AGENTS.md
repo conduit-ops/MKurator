@@ -101,6 +101,7 @@ trees land during scaffolding (see [ROADMAP.md](docs/ROADMAP.md), Phase 1).
 ├── charts/kurator/            # publishable Helm chart + kind sample CRs                    [Phase 3+]
 ├── config/                    # Kustomize: CRDs, RBAC, manager, samples                    [Phase 1+]
 ├── test/
+│   ├── integration/          # Docker MQ integration tests (build tag integration)          [Phase 3+]
 │   ├── e2e/                  # kind-based end-to-end suites                                 [Phase 3+]
 │   └── mocks/                # mockery-generated mocks                                      [Phase 2+]
 ├── hack/
@@ -210,6 +211,9 @@ See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for how to run each tier.
 - **envtest**: controller/API integration against a real API server via
   `setup-envtest`, with the `MQAdmin` port mocked. Co-located with controllers
   (`*_envtest_test.go`), `suite_test.go` loads CRDs from `config/`.
+- **Integration**: `mqrest` queue object CRUD against live mqweb in a **Docker**
+  IBM MQ container (`hack/mq-docker`); stdlib `testing`, build tag
+  `//go:build integration`, env `KURATOR_INTEGRATION_MQ=1`. No kind/operator.
 - **e2e**: run the operator in **kind** against a real IBM MQ container exposing
   `mqweb` (provisioned by `hack/kind-cluster`); assert actual MQSC objects are
   created/updated/deleted. Gated behind a build tag (`//go:build e2e`).
@@ -242,8 +246,12 @@ See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for how to run each tier.
 | `task undeploy` / `task undeploy:helm` | Remove operator |
 | `task helm:package` | Package `charts/kurator` for publish |
 | `task test:run` | Run unit + envtest suites (Ginkgo) |
+| `task test:integration` | MQ integration tests vs Docker mqweb (`KURATOR_INTEGRATION_MQ=1`) |
+| `task test:integration:local` | `mq:integration:up` + wait + `test:integration` |
+| `task mq:integration:up` / `down` | Start/stop Docker IBM MQ for integration tests |
 | `task test:e2e` | Run kind-based e2e suite |
 | `task ci:e2e` | Full e2e parity with CI (`cluster:up` + MQ wait + `test:e2e`) |
+| `task ci:integration` | CI parity for Docker MQ integration tests |
 
 **Local dev** uses kind for both the dev cluster and e2e, provisioned by
 `hack/kind-cluster` (kind + Terraform + IBM MQ Helm chart). See
