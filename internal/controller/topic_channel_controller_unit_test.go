@@ -285,6 +285,18 @@ func TestTopicNeedsUpdate(t *testing.T) {
 	}
 }
 
+func TestTopicNeedsUpdate_PubSubCaseInsensitive(t *testing.T) {
+	t.Parallel()
+	desired := mqadmin.TopicSpec{
+		Name:       "RETAIL.ORDERS",
+		Attributes: map[string]string{"pub": "enabled", "sub": "enabled"},
+	}
+	observed := &mqadmin.TopicState{Attributes: map[string]string{"pub": "ENABLED", "sub": "ENABLED"}}
+	if topicNeedsUpdate(desired, observed) {
+		t.Fatal("expected no update when pub/sub differ only by case")
+	}
+}
+
 func TestChannelReconciler_DefinesWhenMissing(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()

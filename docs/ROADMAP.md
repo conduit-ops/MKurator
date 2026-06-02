@@ -2,7 +2,7 @@
 
 Phased delivery plan for **Kurator**. Each phase is shippable
 on its own and keeps the tree green (build + lint + tests + `verify` pass). See
-[ARCHITECTURE.md](ARCHITECTURE.md) for design, [../AGENTS.md](../AGENTS.md) for
+[ARCHITECTURE.md](ARCHITECTURE.md) for design, [DEVELOPMENT.md](DEVELOPMENT.md) for
 conventions, [NON_FUNCTIONAL_REQUIREMENTS.md](NON_FUNCTIONAL_REQUIREMENTS.md) for
 quality bars, and [CICD.md](CICD.md) for the pipeline.
 
@@ -17,7 +17,7 @@ quality bars, and [CICD.md](CICD.md) for the pipeline.
 
 ## Phase 0 — Foundations
 
-- [x] `AGENTS.md` with context, conventions, toolchain, and doc map.
+- [x] Contributor conventions and toolchain documented (`docs/DEVELOPMENT.md`, doc map in README).
 - [x] `docs/ARCHITECTURE.md` (runtime concerns, RBAC, error/requeue, security).
 - [x] `docs/NON_FUNCTIONAL_REQUIREMENTS.md`, `docs/DEVELOPMENT.md`, `docs/CICD.md`.
 - [x] `docs/adr/` with template, index, and initial decisions.
@@ -142,8 +142,16 @@ before access-control work.
 - [x] Thin reconcilers, RBAC, samples under `config/samples/` and
   `charts/kurator/samples/resources/`.
 - [x] Unit + envtest coverage; [ ] e2e scenarios on kind against live `QM1`.
-- [ ] Optional follow-on in this phase: alias and remote queue types (same patterns
-  as `Queue`).
+- [x] [ATTRIBUTE_RECONCILIATION.md](ATTRIBUTE_RECONCILIATION.md) — DEFINE vs DISPLAY
+  drift matrix per object; user tables in [INSTALL_AND_USE.md](INSTALL_AND_USE.md).
+- [x] Align `Queue.spec.type` OpenAPI with reality (`local` only until alias/remote
+  reconcilers land).
+- [x] Drift detection: case-insensitive `pub`/`sub`/policies; channel `maxinst` /
+  `maxinstc`; topic `pubscope`/`subscope` where mqweb DISPLAY allows.
+- [ ] Optional follow-on in this phase: **alias** and **remote** queue types (same
+  patterns as `Queue`).
+- [ ] Optional: extend queue DISPLAY list (`share`, `defopts`, …) after mqweb 9.4
+  compatibility testing; TLS channel attrs (`sslciph`, `sslcauth`) for drift.
 
 Exit criteria: at least **Topic** and one **Channel** kind reconcile end-to-end on
 kind with the same quality bar as Phase 2 (`verify`, ≥80% `internal/` coverage,

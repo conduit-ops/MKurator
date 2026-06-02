@@ -290,6 +290,17 @@ flowchart LR
 Connection details live on `QueueManagerConnection` so many queues, topics, and
 channels can share one endpoint and credential set. See [ADR-0003](adr/0003-connection-model.md).
 
+### Attribute reconciliation
+
+`spec.attributes` is an open map of lowercase MQSC keys. Kurator always sends them
+on **DEFINE**; **drift detection** only compares keys that mqweb can **DISPLAY**
+safely on IBM MQ 9.4.x (see [ATTRIBUTE_RECONCILIATION.md](ATTRIBUTE_RECONCILIATION.md)).
+
+- **Drift-checked** — changes off-cluster are detected and re-applied; `Synced=True`
+  means these keys match MQ.
+- **Define-only** — applied on create/update, but not read back (e.g. `maxmsglen` on
+  queues, `sslciph` on channels). Manual MQ edits to these keys are not detected.
+
 ---
 
 ## Resource reference
@@ -319,20 +330,22 @@ channels can share one endpoint and credential set. See [ADR-0003](adr/0003-conn
 |-------|----------|-------------|
 | `spec.connectionRef.name` | yes | `QueueManagerConnection` in the same namespace |
 | `spec.queueName` | yes | IBM MQ object name (e.g. `APP.ORDERS`) |
-| `spec.type` | no | Default `local`. Only `local` is reconciled in v0.1.0 |
+| `spec.type` | no | Default `local`. Only `local` is valid in v1alpha1 (alias/remote planned) |
 | `spec.attributes` | no | MQSC parameters for `DEFINE QLOCAL` (string keys/values) |
 
 **Common attributes** (lowercase keys in spec):
 
-| Attribute | Example | Notes |
-|-----------|---------|-------|
-| `maxdepth` | `"5000"` | Coerced to numeric in mqweb JSON |
-| `descr` | `"Orders queue"` | Description |
-| `defpsist` | `"yes"` | Default persistence |
-| `maxmsglen` | `"4194304"` | Define only; not displayed back via mqweb 9.4 JSON |
-| `get` / `put` | `"enabled"` | Use with care in production |
+| Attribute | Example | Drift | Notes |
+|-----------|---------|-------|-------|
+| `maxdepth` | `"5000"` | yes | Coerced to numeric in mqweb JSON |
+| `descr` | `"Orders queue"` | yes | Description |
+| `defpsist` | `"yes"` | yes | Default persistence |
+| `get` / `put` | `"enabled"` | yes | Case-insensitive match |
+| `maxmsglen` | `"4194304"` | no | mqweb 9.4 rejects on DISPLAY |
+| `share`, `defopts`, `bothresh`, `boqname` | various | no | Passthrough on DEFINE only |
 
-More MQSC context: [IBM_MQ_OBJECTS.md](IBM_MQ_OBJECTS.md).
+Full matrix: [ATTRIBUTE_RECONCILIATION.md](ATTRIBUTE_RECONCILIATION.md). MQSC reference:
+[IBM_MQ_OBJECTS.md](IBM_MQ_OBJECTS.md).
 
 **Status**
 
@@ -353,13 +366,14 @@ More MQSC context: [IBM_MQ_OBJECTS.md](IBM_MQ_OBJECTS.md).
 
 **Common attributes** (lowercase keys in spec):
 
-| Attribute | Example | Notes |
-|-----------|---------|-------|
-| `topstr` | `retail/orders` | Topic string (`TOPICSTR` in MQSC; sent as `topicStr` to mqweb) |
-| `descr` | `"Retail orders"` | Description |
-| `pub` / `sub` | `enabled` | Publish/subscribe policy |
-| `defpsist` | `yes` | Default persistence |
-| `pubscope` / `subscope` | `QMGR` | Scope for pub/sub |
+| Attribute | Example | Drift | Notes |
+|-----------|---------|-------|-------|
+| `topstr` | `retail/orders` | yes | Sent as `topicStr` to mqweb |
+| `descr` | `"Retail orders"` | yes | Description |
+| `pub` / `sub` | `enabled` | yes | Case-insensitive match |
+| `defpsist` | `yes` | yes | Default persistence |
+| `pubscope` / `subscope` | `QMGR` | yes* | *Omit from DISPLAY on QM if mqweb returns `MQWB0120E` |
+| `toptype`, `cluster` | various | no | Passthrough on DEFINE only |
 
 **Status:** same `Synced` condition semantics as `Queue`.
 
@@ -374,13 +388,15 @@ More MQSC context: [IBM_MQ_OBJECTS.md](IBM_MQ_OBJECTS.md).
 
 **Common attributes** (lowercase keys in spec):
 
-| Attribute | Example | Notes |
-|-----------|---------|-------|
-| `trptype` | `tcp` | Transport type |
-| `descr` | `"App channel"` | Description |
-| `maxmsgl` | `"4194304"` | Coerced to numeric in mqweb JSON |
-| `sharecnv` | `"10"` | Shared conversations (SVRCONN) |
-| `mcauser` | `appuser` | MCA user (use with OAM/CHLAUTH in production) |
+| Attribute | Example | Drift | Notes |
+|-----------|---------|-------|-------|
+| `trptype` | `tcp` | yes | Case-insensitive |
+| `descr` | `"App channel"` | yes | Description |
+| `maxmsgl` | `"4194304"` | yes | Coerced to numeric in mqweb JSON |
+| `sharecnv` | `"10"` | yes | Shared conversations (SVRCONN) |
+| `mcauser` | `appuser` | yes | Use with OAM/CHLAUTH in production (Phase 5) |
+| `maxinst` / `maxinstc` | `"100"` | yes | Connection limits |
+| `sslciph`, `sslcauth` | various | no | TLS — DEFINE only until DISPLAY support |
 
 **Status:** same `Synced` condition semantics as `Queue`.
 

@@ -33,7 +33,7 @@ type ChannelSpec struct {
 	Type ChannelType `json:"type,omitempty"`
 
 	// Attributes map to MQSC parameters (lowercase keys in mqweb runCommandJSON).
-	// Common keys: trptype, descr, sharecnv, maxmsgl, mcauser.
+	// Drift-checked vs define-only keys: docs/ATTRIBUTE_RECONCILIATION.md.
 	// +optional
 	Attributes map[string]string `json:"attributes,omitempty"`
 }

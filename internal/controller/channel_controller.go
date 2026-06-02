@@ -133,13 +133,7 @@ func (r *ChannelReconciler) ensureChannel(ctx context.Context, admin mqadmin.Adm
 }
 
 func channelNeedsUpdate(desired mqadmin.ChannelSpec, observed *mqadmin.ChannelState) bool {
-	for k, v := range desired.Attributes {
-		key := strings.ToLower(k)
-		if observed.Attributes[key] != v {
-			return true
-		}
-	}
-	return false
+	return mqadmin.AttributesNeedUpdate(desired.Attributes, observed.Attributes)
 }
 
 func (r *ChannelReconciler) handleDeletion(

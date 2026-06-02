@@ -133,13 +133,7 @@ func (r *QueueReconciler) ensureQueue(ctx context.Context, admin mqadmin.Admin, 
 }
 
 func needsUpdate(desired mqadmin.QueueSpec, observed *mqadmin.QueueState) bool {
-	for k, v := range desired.Attributes {
-		key := strings.ToLower(k)
-		if observed.Attributes[key] != v {
-			return true
-		}
-	}
-	return false
+	return mqadmin.AttributesNeedUpdate(desired.Attributes, observed.Attributes)
 }
 
 func (r *QueueReconciler) handleDeletion(
