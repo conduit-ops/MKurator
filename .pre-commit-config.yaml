@@ -1,0 +1,42 @@
+# Pre-commit hooks mirror CI checks where possible. Install with:
+#   pre-commit install
+# See docs/CICD.md and AGENTS.md.
+---
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: ^(references/|hack/kind-cluster/charts/)
+      - id: end-of-file-fixer
+        exclude: ^(references/|hack/kind-cluster/charts/)
+      - id: check-yaml
+        exclude: ^(references/|hack/kind-cluster/charts/|config/)
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+
+  - repo: local
+    hooks:
+      - id: go-format
+        name: go format (gofmt, goimports, golines)
+        entry: task format
+        language: system
+        types: [go]
+        pass_filenames: false
+        require_serial: true
+
+      - id: golangci-lint
+        name: golangci-lint
+        entry: task lint
+        language: system
+        types: [go]
+        pass_filenames: false
+        require_serial: true
+
+      - id: verify
+        name: verify generated artifacts
+        entry: task verify
+        language: system
+        pass_filenames: false
+        always_run: true
+        require_serial: true
