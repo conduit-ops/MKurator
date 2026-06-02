@@ -48,6 +48,13 @@ var _ = Describe("IBM MQ integration", Label("mq"), func() {
 	})
 
 	Context("Queue reconciliation", func() {
+		BeforeAll(func() {
+			if !mqE2EEnabled() {
+				return
+			}
+			ensureOperatorForMQE2E()
+		})
+
 		BeforeEach(func() {
 			By("creating mq-credentials secret for QueueManagerConnection")
 			cmd := exec.Command("kubectl", "create", "secret", "generic", "mq-credentials",
