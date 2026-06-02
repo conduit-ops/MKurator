@@ -18,8 +18,9 @@ IBM MQ Queue Manager** — queues, topics, SVRCONN channels; users/authorities a
 more later.
 
 > Status: **Phase 5 (auth) shipped on `main`** — `ChannelAuthRule` and
-> `AuthorityRecord` reconcile via mqweb MQSC. E2e coverage for auth CRs is
-> tracked in [docs/plans/RELEASE_0.5.0_FOLLOWUPS.md](docs/plans/RELEASE_0.5.0_FOLLOWUPS.md).
+> `AuthorityRecord` reconcile via mqweb MQSC, with Docker integration and kind e2e
+> coverage. Release tag **`v0.5.0`** and follow-ups tracked in
+> [docs/plans/RELEASE_0.5.0_FOLLOWUPS.md](docs/plans/RELEASE_0.5.0_FOLLOWUPS.md).
 > See the [roadmap](docs/ROADMAP.md).
 
 ## What ships in v1alpha1 (today)
@@ -39,7 +40,9 @@ more later.
 
 **Repository:** [github.com/konih/kurator](https://github.com/konih/kurator) — Go module
 [`github.com/konih/kurator`](https://pkg.go.dev/github.com/konih/kurator), images
-`ghcr.io/konih/kurator` ([ADR-0006](docs/adr/0006-project-name-kurator.md)).
+`ghcr.io/konih/kurator` ([ADR-0006](docs/adr/0006-project-name-kurator.md)). Your
+local clone directory may differ from the module/repo name (for example
+`IBM-Message-Queue-Operator`).
 
 ### What CI proves
 
@@ -47,7 +50,7 @@ more later.
 |------|-------|
 | Unit + envtest | Reconcilers and adapter (mocked MQ); validating admission; Queue, Topic, Channel, auth CRs, QMC |
 | Docker integration | Queue, Topic, Channel, CHLAUTH, AUTHREC against live mqweb |
-| kind e2e (`KURATOR_E2E_MQ=1`) | Queue, Topic, Channel CR reconcile + delete on live `QM1`; auth e2e in progress |
+| kind e2e (`KURATOR_E2E_MQ=1`) | Queue, Topic, Channel, ChannelAuthRule, AuthorityRecord CR reconcile + delete on live `QM1` |
 
 Details and commands: [DEVELOPMENT.md#test-tiers](docs/DEVELOPMENT.md#test-tiers).
 
@@ -110,10 +113,14 @@ Sample YAML with annotations:
 [config/samples/README.md](config/samples/README.md).
 
 ```sh
-# After install — apply samples (see config/samples/README.md)
-kubectl apply -k config/samples/   # Connection + Queue + Topic + Channel + auth (Secret first)
+# After operator install — apply samples (Secret + CRs; see config/samples/README.md)
+task deploy:samples
 kubectl get qmc,mq,tp,chl,car,auth -n kurator-system
 ```
+
+`task deploy:samples` applies `charts/kurator/samples/resources/` (includes the
+credentials Secret). The Kustomize tree under `config/samples/` is annotated
+reference YAML without a Secret — apply a Secret first or use `task deploy:samples`.
 
 ## Local development (contributors)
 
@@ -137,7 +144,7 @@ Full index with paths by role: **[docs/README.md](docs/README.md)**.
 
 | | Doc |
 |---|-----|
-| 🎯 **Use Kurator** | [Install and use](docs/INSTALL_AND_USE.md) · [Sample YAML](config/samples/README.md) · [Helm chart](charts/kurator/README.md) |
+| 🎯 **Use Kurator** | [Install and use](docs/INSTALL_AND_USE.md) · [Upgrade](docs/UPGRADE.md) · [Metrics](docs/OBSERVABILITY.md) · [Logging](docs/LOGGING.md) · [Sample YAML](config/samples/README.md) · [Helm chart](charts/kurator/README.md) |
 | 🛠️ **Develop locally** | [Development guide](docs/DEVELOPMENT.md) · [Contributing](docs/CONTRIBUTING.md) · [MQ on kind](docs/IBM_MQ_101.md) · [Platform (kind/Terraform/MQ)](hack/kind-cluster/README.md) |
 | 🏗️ **Design** | [Architecture](docs/ARCHITECTURE.md) · [Attribute reconciliation](docs/ATTRIBUTE_RECONCILIATION.md) · [ADRs](docs/adr/) |
 | 📋 **Project** | [Roadmap](docs/ROADMAP.md) · [CI/CD](docs/CICD.md) · [Release guide](docs/RELEASE.md) · [NFRs](docs/NON_FUNCTIONAL_REQUIREMENTS.md) · [Security](SECURITY.md) |
