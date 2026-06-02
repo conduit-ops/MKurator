@@ -117,13 +117,11 @@ func (c *Client) Ping(ctx context.Context) error {
 // GetQueue returns observed attributes for a local queue.
 func (c *Client) GetQueue(ctx context.Context, name string) (*mqadmin.QueueState, error) {
 	resp, err := c.runCommandJSON(ctx, runCommandJSONRequest{
-		Type:      mqscType,
-		Command:   "display",
-		Qualifier: qualifierQLocal,
-		Name:      name,
-		ResponseParameters: []string{
-			"maxdepth", "descr", "defpsist", "maxmsglen", "get", "put",
-		},
+		Type:               mqscType,
+		Command:            "display",
+		Qualifier:          qualifierQLocal,
+		Name:               name,
+		ResponseParameters: append([]string(nil), queueDisplayParameters...),
 	})
 	if err != nil {
 		return nil, err
@@ -154,10 +152,7 @@ func (c *Client) DefineQueue(ctx context.Context, spec mqadmin.QueueSpec) error 
 			Message: fmt.Sprintf("queue type %q is not supported yet", spec.Type),
 		}
 	}
-	params := map[string]any{"replace": "yes"}
-	for k, v := range spec.Attributes {
-		params[strings.ToLower(k)] = v
-	}
+	params := defineQueueParameters(spec)
 	_, err := c.runCommandJSON(ctx, runCommandJSONRequest{
 		Type:       mqscType,
 		Command:    "define",

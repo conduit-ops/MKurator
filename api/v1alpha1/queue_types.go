@@ -31,7 +31,7 @@ type QueueSpec struct {
 	Type QueueType `json:"type,omitempty"`
 
 	// Attributes map to MQSC parameters (lowercase keys in mqweb runCommandJSON).
-	// Common keys: maxdepth, descr, defpsist, maxmsglen.
+	// Common keys: maxdepth, descr, defpsist (maxmsglen on define only — not displayable via mqweb JSON on 9.4).
 	// +optional
 	Attributes map[string]string `json:"attributes,omitempty"`
 }
