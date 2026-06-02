@@ -238,6 +238,24 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "Channel")
 		os.Exit(1)
 	}
+	if err := (&controller.ChannelAuthRuleReconciler{
+		Client:    mgr.GetClient(),
+		Scheme:    mgr.GetScheme(),
+		MQFactory: mqFactory,
+		Recorder:  eventRecorder,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "ChannelAuthRule")
+		os.Exit(1)
+	}
+	if err := (&controller.AuthorityRecordReconciler{
+		Client:    mgr.GetClient(),
+		Scheme:    mgr.GetScheme(),
+		MQFactory: mqFactory,
+		Recorder:  eventRecorder,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "AuthorityRecord")
+		os.Exit(1)
+	}
 
 	if err := webhookv1alpha1.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to setup webhooks")

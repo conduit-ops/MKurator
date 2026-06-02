@@ -268,3 +268,22 @@ func TestIntegration_DeleteChannel_Idempotent(t *testing.T) {
 		t.Fatalf("DeleteChannel on missing channel: %v", err)
 	}
 }
+
+func TestIntegration_DefineChannel_UnsupportedType(t *testing.T) {
+	requireIntegration(t)
+	ctx := testContext(t)
+	name := channelNameForTest("BADTYPE." + t.Name())
+
+	c, err := newIntegrationClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = c.DefineChannel(ctx, mqadmin.ChannelSpec{
+		Name: name,
+		Type: mqadmin.ChannelType("receiver"),
+	})
+	if !errors.Is(err, mqadmin.ErrTerminal) {
+		t.Fatalf("expected terminal error, got %v", err)
+	}
+}

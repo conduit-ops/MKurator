@@ -120,6 +120,30 @@ func listConnectionDependents(
 			dependents = append(dependents, connectionDependent{kind: "Channel", name: channels.Items[i].Name})
 		}
 	}
+
+	var authRules messagingv1alpha1.ChannelAuthRuleList
+	if err := reader.List(ctx, &authRules, client.InNamespace(namespace)); err != nil {
+		return nil, field.ErrorList{
+			field.InternalError(path, fmt.Errorf("list ChannelAuthRules: %w", err)),
+		}
+	}
+	for i := range authRules.Items {
+		if authRules.Items[i].Spec.ConnectionRef.Name == connName {
+			dependents = append(dependents, connectionDependent{kind: "ChannelAuthRule", name: authRules.Items[i].Name})
+		}
+	}
+
+	var authRecs messagingv1alpha1.AuthorityRecordList
+	if err := reader.List(ctx, &authRecs, client.InNamespace(namespace)); err != nil {
+		return nil, field.ErrorList{
+			field.InternalError(path, fmt.Errorf("list AuthorityRecords: %w", err)),
+		}
+	}
+	for i := range authRecs.Items {
+		if authRecs.Items[i].Spec.ConnectionRef.Name == connName {
+			dependents = append(dependents, connectionDependent{kind: "AuthorityRecord", name: authRecs.Items[i].Name})
+		}
+	}
 	return dependents, nil
 }
 

@@ -700,3 +700,182 @@ func TestClient_DefineAndGetRemoteQueue(t *testing.T) {
 		t.Fatalf("attrs = %v", state.Attributes)
 	}
 }
+
+func TestClient_SetAndDeleteChannelAuth(t *testing.T) {
+	t.Parallel()
+	var lastCmd string
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		params, _ := body["parameters"].(map[string]any)
+		lastCmd, _ = params["command"].(string)
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			testKeyOverallCompletionCode: 0,
+			testKeyCommandResponse:       []map[string]any{{testKeyCompletionCode: 0}},
+		})
+	}))
+	defer srv.Close()
+
+	c := newTestClient(t, srv.URL, srv.Client())
+	spec := mqadmin.ChannelAuthSpec{
+		ChannelName: "DEV.APP.SVRCONN.0TLS",
+		RuleType:    mqadmin.ChannelAuthRuleTypeAddressMap,
+		Address:     "*",
+		UserSource:  "CHANNEL",
+		CheckClient: "REQUIRED",
+	}
+	if err := c.SetChannelAuth(context.Background(), spec); err != nil {
+		t.Fatalf("SetChannelAuth: %v", err)
+	}
+	if !strings.Contains(lastCmd, "ACTION(REPLACE)") {
+		t.Fatalf("command = %q", lastCmd)
+	}
+	if err := c.DeleteChannelAuth(context.Background(), spec); err != nil {
+		t.Fatalf("DeleteChannelAuth: %v", err)
+	}
+	if !strings.Contains(lastCmd, "ACTION(REMOVE)") {
+		t.Fatalf("command = %q", lastCmd)
+	}
+}
+
+func TestClient_SetAndDeleteAuthority(t *testing.T) {
+	t.Parallel()
+	var lastCmd string
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		params, _ := body["parameters"].(map[string]any)
+		lastCmd, _ = params["command"].(string)
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			testKeyOverallCompletionCode: 0,
+			testKeyCommandResponse:       []map[string]any{{testKeyCompletionCode: 0}},
+		})
+	}))
+	defer srv.Close()
+
+	c := newTestClient(t, srv.URL, srv.Client())
+	spec := mqadmin.AuthoritySpec{
+		Profile:     "APP.ORDERS",
+		ObjectType:  mqadmin.AuthorityObjectTypeQueue,
+		Principal:   "app",
+		Authorities: []string{"GET", "PUT"},
+	}
+	if err := c.SetAuthority(context.Background(), spec); err != nil {
+		t.Fatalf("SetAuthority: %v", err)
+	}
+	if !strings.Contains(lastCmd, "AUTHADD(GET,PUT)") {
+		t.Fatalf("command = %q", lastCmd)
+	}
+	if err := c.DeleteAuthority(context.Background(), spec); err != nil {
+		t.Fatalf("DeleteAuthority: %v", err)
+	}
+	if !strings.Contains(lastCmd, "AUTHRMV(ALL)") {
+		t.Fatalf("command = %q", lastCmd)
+	}
+}
+
+func TestClient_DeleteChannelAuthNotFound(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			testKeyOverallCompletionCode: 1,
+			testKeyCommandResponse: []map[string]any{{
+				testKeyCompletionCode: 1,
+				"message":             []string{"AMQ8147E: Channel authority record not found"},
+			}},
+		})
+	}))
+	defer srv.Close()
+
+	c := newTestClient(t, srv.URL, srv.Client())
+	spec := mqadmin.ChannelAuthSpec{
+		ChannelName: "MISSING.CH",
+		RuleType:    mqadmin.ChannelAuthRuleTypeAddressMap,
+		Address:     "*",
+	}
+	if err := c.DeleteChannelAuth(context.Background(), spec); err != nil {
+		t.Fatalf("DeleteChannelAuth: %v", err)
+	}
+}
+
+func TestClient_SetChannelAuthInvalidSpec(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("RunMQSC should not be called for invalid spec")
+	}))
+	defer srv.Close()
+
+	c := newTestClient(t, srv.URL, srv.Client())
+	err := c.SetChannelAuth(context.Background(), mqadmin.ChannelAuthSpec{})
+	if err == nil {
+		t.Fatal("expected invalid spec error")
+	}
+}
+
+func TestClient_DeleteChannelAuthRealError(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			testKeyOverallCompletionCode: 1,
+			testKeyCommandResponse: []map[string]any{{
+				testKeyCompletionCode: 1,
+				"message":             []string{"AMQ1234E: permission denied"},
+			}},
+		})
+	}))
+	defer srv.Close()
+
+	c := newTestClient(t, srv.URL, srv.Client())
+	spec := mqadmin.ChannelAuthSpec{
+		ChannelName: "DEV.APP",
+		RuleType:    mqadmin.ChannelAuthRuleTypeAddressMap,
+		Address:     "*",
+	}
+	if err := c.DeleteChannelAuth(context.Background(), spec); err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestClient_SetAuthorityInvalidSpec(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("RunMQSC should not be called for invalid spec")
+	}))
+	defer srv.Close()
+
+	c := newTestClient(t, srv.URL, srv.Client())
+	err := c.SetAuthority(context.Background(), mqadmin.AuthoritySpec{})
+	if err == nil {
+		t.Fatal("expected invalid spec error")
+	}
+}
+
+func TestClient_DeleteAuthorityNotFound(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			testKeyOverallCompletionCode: 1,
+			testKeyCommandResponse: []map[string]any{{
+				testKeyCompletionCode: 1,
+				"message":             []string{"AMQ8958E: authority record not found"},
+			}},
+		})
+	}))
+	defer srv.Close()
+
+	c := newTestClient(t, srv.URL, srv.Client())
+	spec := mqadmin.AuthoritySpec{
+		Profile:    "MISSING",
+		ObjectType: mqadmin.AuthorityObjectTypeQueue,
+		Principal:  "app",
+	}
+	if err := c.DeleteAuthority(context.Background(), spec); err != nil {
+		t.Fatalf("DeleteAuthority: %v", err)
+	}
+}

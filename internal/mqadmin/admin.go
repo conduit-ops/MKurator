@@ -27,6 +27,10 @@ type Admin interface {
 	GetChannel(ctx context.Context, spec ChannelSpec) (*ChannelState, error)
 	DefineChannel(ctx context.Context, spec ChannelSpec) error
 	DeleteChannel(ctx context.Context, spec ChannelSpec) error
+	SetChannelAuth(ctx context.Context, spec ChannelAuthSpec) error
+	DeleteChannelAuth(ctx context.Context, spec ChannelAuthSpec) error
+	SetAuthority(ctx context.Context, spec AuthoritySpec) error
+	DeleteAuthority(ctx context.Context, spec AuthoritySpec) error
 }
 
 // QueueSpec is the domain shape for defining a queue via MQSC.

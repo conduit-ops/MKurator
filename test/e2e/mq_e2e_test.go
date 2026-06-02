@@ -21,6 +21,8 @@ const (
 	mqConnectionName  = "e2e-qm1"
 	mqQueueCRName     = "e2e-orders"
 	mqQueueObject     = "E2E.APP.ORDERS"
+	mqQueueMaxDepthV1 = "1000"
+	mqQueueMaxDepthV2 = "2000"
 	mqTopicCRName     = "e2e-retail-orders"
 	mqTopicObject     = "E2E.RETAIL.ORDERS"
 	mqChannelCRName   = "e2e-orders-app"
@@ -102,9 +104,9 @@ spec:
   queueName: %s
   type: local
   attributes:
-    maxdepth: "1000"
+    maxdepth: "%s"
     descr: e2e orders queue
-`, mqQueueCRName, namespace, mqConnectionName, mqQueueObject)
+`, mqQueueCRName, namespace, mqConnectionName, mqQueueObject, mqQueueMaxDepthV1)
 
 			Expect(kubectlApply(queueYAML)).To(Succeed())
 
@@ -125,7 +127,7 @@ spec:
 
 			state, err := client.GetQueue(ctx, e2eLocalQueueSpec())
 			Expect(err).NotTo(HaveOccurred())
-			Expect(state.Attributes["maxdepth"]).To(Equal("1000"))
+			Expect(state.Attributes["maxdepth"]).To(Equal(mqQueueMaxDepthV1))
 
 			By("deleting the Queue CR and expecting MQ object removal")
 			cmd := exec.Command("kubectl", "delete", "queue", mqQueueCRName, "-n", namespace, "--wait=true")
@@ -136,6 +138,109 @@ spec:
 				_, err := client.GetQueue(ctx, e2eLocalQueueSpec())
 				g.Expect(err).To(HaveOccurred())
 			}).WithTimeout(2 * time.Minute).WithPolling(3 * time.Second).Should(Succeed())
+		})
+
+		It("reconciles Queue attribute updates after spec changes", func() {
+			Expect(kubectlApply(connectionManifest())).To(Succeed())
+
+			queueYAML := fmt.Sprintf(`apiVersion: messaging.kurator.dev/v1alpha1
+kind: Queue
+metadata:
+  name: %s
+  namespace: %s
+spec:
+  connectionRef:
+    name: %s
+  queueName: %s
+  type: local
+  attributes:
+    maxdepth: "%s"
+    descr: e2e orders queue v1
+`, mqQueueCRName, namespace, mqConnectionName, mqQueueObject, mqQueueMaxDepthV1)
+			Expect(kubectlApply(queueYAML)).To(Succeed())
+
+			Eventually(func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "queue", mqQueueCRName, "-n", namespace,
+					"-o", "jsonpath={.status.conditions[?(@.type==\"Synced\")].status}")
+				out, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(out).To(Equal("True"))
+			}).WithTimeout(3 * time.Minute).WithPolling(5 * time.Second).Should(Succeed())
+
+			queueYAML = fmt.Sprintf(`apiVersion: messaging.kurator.dev/v1alpha1
+kind: Queue
+metadata:
+  name: %s
+  namespace: %s
+spec:
+  connectionRef:
+    name: %s
+  queueName: %s
+  type: local
+  attributes:
+    maxdepth: "%s"
+    descr: e2e orders queue v2
+`, mqQueueCRName, namespace, mqConnectionName, mqQueueObject, mqQueueMaxDepthV2)
+			Expect(kubectlApply(queueYAML)).To(Succeed())
+
+			client, err := newMQClient()
+			Expect(err).NotTo(HaveOccurred())
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+			defer cancel()
+
+			Eventually(func(g Gomega) {
+				state, getErr := client.GetQueue(ctx, e2eLocalQueueSpec())
+				g.Expect(getErr).NotTo(HaveOccurred())
+				g.Expect(state.Attributes["maxdepth"]).To(Equal(mqQueueMaxDepthV2))
+			}).WithTimeout(2 * time.Minute).WithPolling(5 * time.Second).Should(Succeed())
+		})
+
+		It("recovers QueueManagerConnection readiness after secret rotation", func() {
+			By("creating intentionally invalid MQ credentials")
+			Expect(kubectlApply(fmt.Sprintf(`apiVersion: v1
+kind: Secret
+metadata:
+  name: mq-credentials
+  namespace: %s
+type: Opaque
+stringData:
+  username: admin
+  mqAdminPassword: wrong-password
+`, namespace))).To(Succeed())
+			Expect(kubectlApply(connectionManifest())).To(Succeed())
+
+			Eventually(func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "queuemanagerconnection", mqConnectionName, "-n", namespace,
+					"-o", "jsonpath={.status.conditions[?(@.type==\"Ready\")].status}")
+				out, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(out).To(Equal("False"))
+			}).WithTimeout(2 * time.Minute).WithPolling(5 * time.Second).Should(Succeed())
+
+			By("rotating secret to the valid credentials and forcing a reconcile")
+			Expect(kubectlApply(fmt.Sprintf(`apiVersion: v1
+kind: Secret
+metadata:
+  name: mq-credentials
+  namespace: %s
+type: Opaque
+stringData:
+  username: admin
+  mqAdminPassword: %s
+`, namespace, envOr("KURATOR_E2E_MQ_PASSWORD", "passw0rd")))).To(Succeed())
+
+			cmd := exec.Command("kubectl", "annotate", "queuemanagerconnection", mqConnectionName, "-n", namespace,
+				fmt.Sprintf("e2e-refresh-ts=%d", time.Now().UnixNano()), "--overwrite")
+			_, err := utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+
+			Eventually(func(g Gomega) {
+				check := exec.Command("kubectl", "get", "queuemanagerconnection", mqConnectionName, "-n", namespace,
+					"-o", "jsonpath={.status.conditions[?(@.type==\"Ready\")].status}")
+				out, runErr := utils.Run(check)
+				g.Expect(runErr).NotTo(HaveOccurred())
+				g.Expect(out).To(Equal("True"))
+			}).WithTimeout(3 * time.Minute).WithPolling(5 * time.Second).Should(Succeed())
 		})
 
 		It("reconciles a Topic CR against the kind IBM MQ queue manager", func() {

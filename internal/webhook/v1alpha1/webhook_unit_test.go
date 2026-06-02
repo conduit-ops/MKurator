@@ -210,3 +210,85 @@ func TestQueueManagerConnectionWebhookValidateDelete(t *testing.T) {
 		t.Fatalf("expected no warnings, got %v", warnings)
 	}
 }
+
+func TestChannelAuthRuleWebhookValidateCreate(t *testing.T) {
+	scheme := webhookTestScheme(t)
+	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(sampleWebhookConn("ns")).Build()
+	v := &channelAuthRuleCustomValidator{Client: cl}
+
+	rule := &messagingv1alpha1.ChannelAuthRule{
+		ObjectMeta: metav1.ObjectMeta{Name: "car1", Namespace: "ns"},
+		Spec: messagingv1alpha1.ChannelAuthRuleSpec{
+			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+			ChannelName:   "ORDERS.APP",
+			RuleType:      messagingv1alpha1.ChannelAuthRuleTypeAddressMap,
+			Address:       "*",
+		},
+	}
+	if _, err := v.ValidateCreate(context.Background(), rule); err != nil {
+		t.Fatalf("ValidateCreate: %v", err)
+	}
+}
+
+func TestAuthorityRecordWebhookValidateCreate(t *testing.T) {
+	scheme := webhookTestScheme(t)
+	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(sampleWebhookConn("ns")).Build()
+	v := &authorityRecordCustomValidator{Client: cl}
+
+	auth := &messagingv1alpha1.AuthorityRecord{
+		ObjectMeta: metav1.ObjectMeta{Name: "auth1", Namespace: "ns"},
+		Spec: messagingv1alpha1.AuthorityRecordSpec{
+			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+			Profile:       "APP.ORDERS",
+			ObjectType:    messagingv1alpha1.AuthorityObjectTypeQueue,
+			Principal:     "app",
+			Authorities:   []string{"GET", "PUT"},
+		},
+	}
+	if _, err := v.ValidateCreate(context.Background(), auth); err != nil {
+		t.Fatalf("ValidateCreate: %v", err)
+	}
+}
+
+func TestChannelAuthRuleWebhookValidateUpdateDelete(t *testing.T) {
+	scheme := webhookTestScheme(t)
+	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(sampleWebhookConn("ns")).Build()
+	v := &channelAuthRuleCustomValidator{Client: cl}
+	rule := &messagingv1alpha1.ChannelAuthRule{
+		ObjectMeta: metav1.ObjectMeta{Name: "car1", Namespace: "ns"},
+		Spec: messagingv1alpha1.ChannelAuthRuleSpec{
+			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+			ChannelName:   "ORDERS.APP",
+			RuleType:      messagingv1alpha1.ChannelAuthRuleTypeAddressMap,
+			Address:       "*",
+		},
+	}
+	if _, err := v.ValidateUpdate(context.Background(), rule, rule); err != nil {
+		t.Fatalf("ValidateUpdate: %v", err)
+	}
+	if _, err := v.ValidateDelete(context.Background(), rule); err != nil {
+		t.Fatalf("ValidateDelete: %v", err)
+	}
+}
+
+func TestAuthorityRecordWebhookValidateUpdateDelete(t *testing.T) {
+	scheme := webhookTestScheme(t)
+	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(sampleWebhookConn("ns")).Build()
+	v := &authorityRecordCustomValidator{Client: cl}
+	auth := &messagingv1alpha1.AuthorityRecord{
+		ObjectMeta: metav1.ObjectMeta{Name: "auth1", Namespace: "ns"},
+		Spec: messagingv1alpha1.AuthorityRecordSpec{
+			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+			Profile:       "APP.ORDERS",
+			ObjectType:    messagingv1alpha1.AuthorityObjectTypeQueue,
+			Principal:     "app",
+			Authorities:   []string{"GET", "PUT"},
+		},
+	}
+	if _, err := v.ValidateUpdate(context.Background(), auth, auth); err != nil {
+		t.Fatalf("ValidateUpdate: %v", err)
+	}
+	if _, err := v.ValidateDelete(context.Background(), auth); err != nil {
+		t.Fatalf("ValidateDelete: %v", err)
+	}
+}

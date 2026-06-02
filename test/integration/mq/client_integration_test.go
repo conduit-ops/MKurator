@@ -215,6 +215,63 @@ func TestIntegration_Queue_Alias(t *testing.T) {
 	}
 }
 
+func TestIntegration_Queue_Alias_UpdateTargetViaReplace(t *testing.T) {
+	requireIntegration(t)
+	ctx := testContext(t)
+	hash := testNameHash(t.Name()) % 100000
+	target1 := fmt.Sprintf("KIT.Q.%05d.T1", hash)
+	target2 := fmt.Sprintf("KIT.Q.%05d.T2", hash)
+	alias := fmt.Sprintf("KIT.Q.%05d.A", hash)
+
+	c, err := newIntegrationClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_ = c.DeleteQueue(context.Background(), mqadmin.QueueSpec{Name: alias, Type: mqadmin.QueueTypeAlias})
+		_ = c.DeleteQueue(context.Background(), mqadmin.QueueSpec{Name: target1, Type: mqadmin.QueueTypeLocal})
+		_ = c.DeleteQueue(context.Background(), mqadmin.QueueSpec{Name: target2, Type: mqadmin.QueueTypeLocal})
+	})
+
+	for _, target := range []string{target1, target2} {
+		if err := c.DefineQueue(ctx, mqadmin.QueueSpec{
+			Name: target, Type: mqadmin.QueueTypeLocal, Attributes: map[string]string{"maxdepth": "100"},
+		}); err != nil {
+			t.Fatalf("define target %s: %v", target, err)
+		}
+	}
+
+	defineAlias := func(target string) {
+		t.Helper()
+		spec := mqadmin.QueueSpec{
+			Name: alias, Type: mqadmin.QueueTypeAlias,
+			Attributes: map[string]string{"targq": target, "descr": "integration alias replace"},
+		}
+		if err := c.DefineQueue(ctx, spec); err != nil {
+			t.Fatalf("define alias target=%s: %v", target, err)
+		}
+	}
+
+	spec := mqadmin.QueueSpec{Name: alias, Type: mqadmin.QueueTypeAlias}
+	defineAlias(target1)
+	state, err := c.GetQueue(ctx, spec)
+	if err != nil {
+		t.Fatalf("GetQueue alias v1: %v", err)
+	}
+	if state.Attributes["targq"] != target1 {
+		t.Fatalf("targq v1 = %q", state.Attributes["targq"])
+	}
+
+	defineAlias(target2)
+	state, err = c.GetQueue(ctx, spec)
+	if err != nil {
+		t.Fatalf("GetQueue alias v2: %v", err)
+	}
+	if state.Attributes["targq"] != target2 {
+		t.Fatalf("targq v2 = %q", state.Attributes["targq"])
+	}
+}
+
 func TestIntegration_Queue_Remote(t *testing.T) {
 	requireIntegration(t)
 	ctx := testContext(t)

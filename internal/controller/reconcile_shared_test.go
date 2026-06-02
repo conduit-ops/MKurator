@@ -55,11 +55,29 @@ func TestRequestsForConnection_EnqueuesDependents(t *testing.T) {
 			ChannelName:   "ORDERS.APP",
 		},
 	}
+	car := &messagingv1alpha1.ChannelAuthRule{
+		ObjectMeta: metav1.ObjectMeta{Name: "car1", Namespace: ns},
+		Spec: messagingv1alpha1.ChannelAuthRuleSpec{
+			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+			ChannelName:   "ORDERS.APP",
+			RuleType:      messagingv1alpha1.ChannelAuthRuleTypeAddressMap,
+		},
+	}
+	auth := &messagingv1alpha1.AuthorityRecord{
+		ObjectMeta: metav1.ObjectMeta{Name: "auth1", Namespace: ns},
+		Spec: messagingv1alpha1.AuthorityRecordSpec{
+			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+			Profile:       "APP.ORDERS",
+			ObjectType:    messagingv1alpha1.AuthorityObjectTypeQueue,
+			Principal:     "app",
+			Authorities:   []string{"GET"},
+		},
+	}
 
-	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(conn, queue, topic, channel).Build()
+	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(conn, queue, topic, channel, car, auth).Build()
 	reqs := requestsForConnection(ctx, cl, conn)
-	if len(reqs) != 3 {
-		t.Fatalf("requests = %d, want 3", len(reqs))
+	if len(reqs) != 5 {
+		t.Fatalf("requests = %d, want 5", len(reqs))
 	}
 }
 
@@ -339,6 +357,116 @@ func TestSetSyncedError_TransientChannel(t *testing.T) {
 	}
 	cl := fake.NewClientBuilder().WithScheme(s).WithStatusSubresource(ch).WithObjects(ch).Build()
 	result, err := setSyncedError(ctx, cl.Status(), nil, ch, 1, &mqadmin.TransientError{Message: "timeout"})
+	if !errors.Is(err, mqadmin.ErrTransient) || result.RequeueAfter != 30*time.Second {
+		t.Fatalf("result=%+v err=%v", result, err)
+	}
+}
+
+func TestPatchSyncedAvailable_ChannelAuthRule(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	ns := "kurator-system"
+	s := unitSchemeOrFatal(t)
+	rule := &messagingv1alpha1.ChannelAuthRule{
+		ObjectMeta: metav1.ObjectMeta{Name: "car1", Namespace: ns, Generation: 2},
+	}
+	cl := fake.NewClientBuilder().WithScheme(s).WithStatusSubresource(rule).WithObjects(rule).Build()
+	if err := patchSyncedAvailable(ctx, cl.Status(), nil, rule, 2, "synced"); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSetSyncedError_AuthorityRecord(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	ns := "kurator-system"
+	s := unitSchemeOrFatal(t)
+	auth := &messagingv1alpha1.AuthorityRecord{
+		ObjectMeta: metav1.ObjectMeta{Name: "auth1", Namespace: ns, Generation: 1},
+	}
+	cl := fake.NewClientBuilder().WithScheme(s).WithStatusSubresource(auth).WithObjects(auth).Build()
+	_, err := setSyncedError(ctx, cl.Status(), nil, auth, 1, &mqadmin.TerminalError{Message: "denied"})
+	if err != nil {
+		t.Fatalf("setSyncedError: %v", err)
+	}
+}
+
+func TestPatchSyncedProgressing_ChannelAuthRule(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	ns := "kurator-system"
+	s := unitSchemeOrFatal(t)
+	rule := &messagingv1alpha1.ChannelAuthRule{
+		ObjectMeta: metav1.ObjectMeta{Name: "car1", Namespace: ns, Generation: 1},
+	}
+	cl := fake.NewClientBuilder().WithScheme(s).WithStatusSubresource(rule).WithObjects(rule).Build()
+	if err := patchSyncedProgressing(ctx, cl.Status(), nil, rule, 1, "waiting"); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestPatchSyncedDeleting_AuthorityRecord(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	ns := "kurator-system"
+	s := unitSchemeOrFatal(t)
+	auth := &messagingv1alpha1.AuthorityRecord{
+		ObjectMeta: metav1.ObjectMeta{Name: "auth1", Namespace: ns, Generation: 1},
+	}
+	cl := fake.NewClientBuilder().WithScheme(s).WithStatusSubresource(auth).WithObjects(auth).Build()
+	if err := patchSyncedDeleting(ctx, cl.Status(), nil, auth, 1, "deleting"); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSyncedConditions_AuthTypes(t *testing.T) {
+	t.Parallel()
+	car := &messagingv1alpha1.ChannelAuthRule{Status: messagingv1alpha1.ChannelAuthRuleStatus{
+		Conditions: []metav1.Condition{{Type: messagingv1alpha1.ConditionSynced, Status: metav1.ConditionTrue}},
+	}}
+	if len(syncedConditions(car)) != 1 {
+		t.Fatal("expected channel auth rule conditions")
+	}
+	auth := &messagingv1alpha1.AuthorityRecord{Status: messagingv1alpha1.AuthorityRecordStatus{
+		Conditions: []metav1.Condition{{Type: messagingv1alpha1.ConditionSynced, Status: metav1.ConditionTrue}},
+	}}
+	if len(syncedConditions(auth)) != 1 {
+		t.Fatal("expected authority record conditions")
+	}
+}
+
+func TestConnectionRefName_AuthTypes(t *testing.T) {
+	t.Parallel()
+	car := &messagingv1alpha1.ChannelAuthRule{
+		Spec: messagingv1alpha1.ChannelAuthRuleSpec{
+			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		},
+	}
+	name, err := connectionRefName(car)
+	if err != nil || name != "qm1" {
+		t.Fatalf("car name=%q err=%v", name, err)
+	}
+	auth := &messagingv1alpha1.AuthorityRecord{
+		Spec: messagingv1alpha1.AuthorityRecordSpec{
+			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm2"},
+		},
+	}
+	name, err = connectionRefName(auth)
+	if err != nil || name != "qm2" {
+		t.Fatalf("auth name=%q err=%v", name, err)
+	}
+}
+
+func TestSetSyncedError_TransientAuthorityRecord(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	ns := "kurator-system"
+	s := unitSchemeOrFatal(t)
+	auth := &messagingv1alpha1.AuthorityRecord{
+		ObjectMeta: metav1.ObjectMeta{Name: "auth1", Namespace: ns, Generation: 1},
+	}
+	cl := fake.NewClientBuilder().WithScheme(s).WithStatusSubresource(auth).WithObjects(auth).Build()
+	result, err := setSyncedError(ctx, cl.Status(), nil, auth, 1, &mqadmin.TransientError{Message: "timeout"})
 	if !errors.Is(err, mqadmin.ErrTransient) || result.RequeueAfter != 30*time.Second {
 		t.Fatalf("result=%+v err=%v", result, err)
 	}

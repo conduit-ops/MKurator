@@ -187,6 +187,35 @@ func TestValidateQueueManagerConnectionDeleteWithChannel(t *testing.T) {
 	}
 }
 
+func TestValidateQueueManagerConnectionDeleteWithAuthDependents(t *testing.T) {
+	t.Parallel()
+	scheme := runtime.NewScheme()
+	_ = messagingv1alpha1.AddToScheme(scheme)
+	conn := sampleConnection("ns", "qm1")
+	car := &messagingv1alpha1.ChannelAuthRule{
+		ObjectMeta: metav1.ObjectMeta{Name: "car1", Namespace: "ns"},
+		Spec: messagingv1alpha1.ChannelAuthRuleSpec{
+			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+			ChannelName:   "ORDERS.APP",
+			RuleType:      messagingv1alpha1.ChannelAuthRuleTypeAddressMap,
+		},
+	}
+	auth := &messagingv1alpha1.AuthorityRecord{
+		ObjectMeta: metav1.ObjectMeta{Name: "auth1", Namespace: "ns"},
+		Spec: messagingv1alpha1.AuthorityRecordSpec{
+			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+			Profile:       "APP.ORDERS",
+			ObjectType:    messagingv1alpha1.AuthorityObjectTypeQueue,
+			Principal:     "app",
+			Authorities:   []string{"GET"},
+		},
+	}
+	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(conn, car, auth).Build()
+	if errs := ValidateQueueManagerConnectionDelete(context.Background(), cl, conn); len(errs) == 0 {
+		t.Fatal("expected delete blocked when auth dependents exist")
+	}
+}
+
 func TestValidateQueueManagerConnectionSpec(t *testing.T) {
 	t.Parallel()
 	scheme := runtime.NewScheme()
