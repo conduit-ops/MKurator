@@ -13,8 +13,9 @@ A Kubernetes operator for declaratively managing **resources on an existing
 IBM MQ Queue Manager** — queues, topics, SVRCONN channels; users/authorities and
 more later.
 
-> Status: **Phase 4** — queue, topic, and SVRCONN channel reconcile on existing
-> IBM MQ via `mqweb`. See the [roadmap](docs/ROADMAP.md) for what is next.
+> Status: **Phase 4 + 4b complete** — queue, topic, SVRCONN channel, and
+> validating admission webhooks on existing IBM MQ via `mqweb`. **Phase 5**
+> (auth) is next. See the [roadmap](docs/ROADMAP.md).
 
 ## What ships in v1alpha1 (today)
 

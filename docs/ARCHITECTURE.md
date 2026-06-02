@@ -58,7 +58,7 @@ flowchart TB
 | Component | Responsibility |
 |-----------|----------------|
 | **Manager** (`cmd/`) | Wires reconcilers, validating webhooks, caches, health/metrics, leader election. |
-| **Validating webhooks** (`internal/webhook`, `internal/validation`) | Reject invalid CR specs at admission (`failurePolicy: Fail`); same-namespace `connectionRef` and Secret checks only — **no mqweb**. ([ADR-0009](adr/0009-validating-admission-webhooks.md)) |
+| **Validating webhooks** (`internal/webhook`, `internal/validation`) | Reject invalid CR specs at admission (`failurePolicy: Fail`); same-namespace `connectionRef` and Secret checks; deny `QueueManagerConnection` **delete** when dependent CRs exist — **no mqweb**. ([ADR-0009](adr/0009-validating-admission-webhooks.md)) |
 | **Reconcilers** (`internal/controller`) | Thin control loops for `QueueManagerConnection`, `Queue`, `Topic`, and `Channel`. Translate desired vs. observed state and call the `mqadmin.Admin` port. No HTTP/MQ details. |
 | **MQAdmin port** (`internal/mqadmin`) | Go interface (`Admin`) describing MQ operations (ping, queue/topic/channel define/inspect/delete) plus domain types. The seam that makes controllers testable and backends swappable. |
 | **mqrest adapter** (`internal/adapter/mqrest`) | The only `MQAdmin` implementation today. Talks to `mqweb` over HTTPS, posting MQSC commands and parsing responses. |
@@ -199,8 +199,8 @@ Full requirements and rationale: [NON_FUNCTIONAL_REQUIREMENTS.md](NON_FUNCTIONAL
 
 ### QueueManagerConnection
 
-Describes how to reach a Queue Manager. Cluster- or namespace-scoped (TBD in
-Phase 2; namespaced by default for multi-tenant isolation).
+Describes how to reach a Queue Manager. **Namespaced** (all v1alpha1 CRDs) for
+multi-tenant isolation.
 
 ```yaml
 apiVersion: messaging.kurator.dev/v1alpha1

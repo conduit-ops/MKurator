@@ -1,8 +1,8 @@
 # Follow-up plan: Validating admission webhooks (post-implementation)
 
-**Status:** Actionable follow-ups after implementation landed in `f527ba3`, `cbf16da`, `ea79a83`.  
+**Status:** Mostly closed — remaining items are optional (e2e Kustomize path, admission warnings envtest).  
 **Parent plan:** [VALIDATING_WEBHOOKS.md](VALIDATING_WEBHOOKS.md) (§8 acceptance criteria, §3 rules, deferred items).  
-**Schedule:** Close before [Phase 5](../ROADMAP.md#phase-5--user--authority-management).
+**Schedule:** Phase 4b exit criteria **met**; optional follow-ups before [Phase 5](../ROADMAP.md#phase-5--user--authority-management).
 
 ---
 
@@ -17,18 +17,19 @@
 | **Kustomize** | `config/webhook`, `config/certmanager`, manager patch, `config/default` `[WEBHOOK]` / `[CERTMANAGER]` enabled (`kurator-` name prefix). |
 | **Helm** | `webhooks.enabled` (default `true`), `webhook-service`, `validating-webhook-configuration`, cert-manager `Certificate`/`Issuer` templates; deployment mounts `webhook-server-cert`. |
 | **Unit tests** | Table-driven `internal/validation/*_test.go` including unknown-attribute warning case. |
-| **Envtest admission** | `internal/webhook/v1alpha1/suite_test.go` — deny missing QMC, deny alias without `targq`, allow valid Queue (included in `task test:run`). |
+| **Envtest admission** | `internal/webhook/v1alpha1/suite_test.go` — deny missing QMC, deny alias without `targq`, deny QMC delete with dependents, allow valid Queue (included in `task test:run`). |
 | **E2e (code)** | `test/e2e/e2e_test.go` — `It("should reject invalid Queue at admission")` after `make deploy` (Kustomize path). |
 | **Docs (repo)** | `docs/ROADMAP.md` Phase 4b mostly `[x]`; `docs/ARCHITECTURE.md`, `docs/INSTALL_AND_USE.md`, `docs/NON_FUNCTIONAL_REQUIREMENTS.md` (API-2) updated in `ea79a83`. |
 | **Module rename** | `github.com/konih/kurator` in `f527ba3`. |
 
-### Remaining before Phase 5
+### Remaining (optional before Phase 5)
 
-1. **Verify on a real cluster** — `task ci:e2e` (or equivalent) not confirmed locally; admission e2e depends on Kustomize `make deploy`, while `task local:up` uses Helm (separate path).
-2. **Release hygiene** — `main` is **4 commits ahead** of `origin/main`; `f527ba3` was committed with `--no-verify`; re-run `task verify`, `task lint`, `task test:run` before push.
-3. **Plan / roadmap closure** — [VALIDATING_WEBHOOKS.md](VALIDATING_WEBHOOKS.md) still says “Draft for review”; §9 checkboxes unchecked; ROADMAP Phase 4b exit criteria and one optional checkbox still open.
-4. **Optional product items** — QMC delete-with-dependents webhook; envtest assertion for admission **warnings**; `GetEventRecorderFor` deprecation cleanup.
-5. **AGENTS.md** — gitignored locally; bullets from parent plan §8 may need a manual sync (see §5 below).
+1. **E2e Kustomize path** — full `task ci:e2e` admission coverage via `make deploy` (Helm path verified separately in P1.2).
+2. **Envtest admission warnings** — assert unknown-attribute warnings propagate to the client (K8s ≥ 1.27).
+3. **`GetEventRecorderFor` deprecation** — controller-runtime cleanup when upgrading.
+
+Phase 4b roadmap exit criteria and parent plan status are **Implemented**; ROADMAP
+Phase 4b is signed off.
 
 ---
 
@@ -217,7 +218,7 @@ Exit criteria: **met** — invalid manifests rejected by `kubectl apply` on kind
 | Queue names + alias/remote attrs | Yes | |
 | Unknown attr warnings | Yes | `internal/validation/attributes.go`; unit test; **no envtest warning assert** |
 | Topic/Channel names + channel type | Yes | |
-| QMC delete with dependents | **No** | `ValidateDelete` noop; ROADMAP `[ ]` |
+| QMC delete with dependents | **Yes** | `ValidateQueueManagerConnectionDelete`; envtest + unit tests |
 | Secret key presence | Out of scope | By design §3.6 |
 | E2e warnings audit | Optional | Not done |
 
@@ -236,8 +237,8 @@ Exit criteria: **met** — invalid manifests rejected by `kubectl apply` on kind
 
 ## 8. Acceptance for *this* follow-up plan
 
-- [ ] P0.1 `task ci:e2e` green locally (or documented blocker).
-- [ ] P0.2 Four commits pushed; `verify` / `lint` / `test:run` green on tip.
-- [ ] P1.1 Parent plan status = Implemented.
-- [ ] P1.2 Helm/kind smoke recorded.
-- [ ] ROADMAP paste applied when signing off Phase 4b (§4).
+- [ ] P0.1 `task ci:e2e` green locally (optional — Kustomize deploy path). **Deferred:** suite `BeforeAll` runs `make deploy`, which replaces a Helm `task local:up` stack; admission verified via P1.2 + webhook envtest instead.
+- [x] P0.2 `verify` / `lint` / `test:run` green on tip.
+- [x] P1.1 Parent plan status = Implemented ([VALIDATING_WEBHOOKS.md](VALIDATING_WEBHOOKS.md)).
+- [x] P1.2 Helm/kind smoke recorded (2026-06-02): `kurator-serving-cert` Ready; `kurator-validating-webhook-configuration` (4 webhooks); invalid Queue rejected; valid sample admitted.
+- [x] ROADMAP Phase 4b signed off (exit criteria **met**).
