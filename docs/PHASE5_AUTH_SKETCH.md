@@ -94,6 +94,10 @@ DeleteAuthority(ctx context.Context, spec AuthoritySpec) error
 Adapter implementation: [`internal/adapter/mqrest/auth.go`](../internal/adapter/mqrest/auth.go)
 via `RunMQSC` / `runCommand`.
 
+**GET paths (shipped):** `GetChannelAuth` and `GetAuthority` run `DISPLAY CHLAUTH` /
+`DISPLAY AUTHREC` for observed state (foundation for drift detection). Reconcilers
+still use replace-on-apply; drift-aware auth reconcile is a follow-up.
+
 ## What we are not copying from IBM samples
 
 | IBM pattern | Kurator approach |

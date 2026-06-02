@@ -25,6 +25,17 @@ Tracking work to finish the **Phase 5 auth** release after CRD/reconciler code l
 - [ ] **Webhook negative** (optional) — invalid auth CR rejected on `kubectl apply`
 - [ ] `task ci:e2e` green locally
 
+## MQAdmin GET paths (DISPLAY via mqweb)
+
+Foundation for future auth drift detection — `GetChannelAuth` and `GetAuthority`
+issue `DISPLAY CHLAUTH` / `DISPLAY AUTHREC` MQSC via `runCommand`.
+
+- [x] `GetChannelAuth` / `GetAuthority` on `mqadmin.Admin` + `mqrest` adapter
+- [x] Unit tests (`auth_test.go`, `client_test.go`, `mqsc_params_test.go`)
+- [x] Docker integration tests (`test/integration/mq/auth_integration_test.go`)
+- [ ] Wire GET paths into auth reconcilers for drift-aware reconcile (replace-on-diff)
+- [ ] Extend e2e helpers to use adapter GET instead of raw `RunMQSC` DISPLAY
+
 ## Release mechanics
 
 - [ ] Bump `charts/kurator/Chart.yaml` `version` / `appVersion` to **0.5.0**
