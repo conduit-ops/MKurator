@@ -41,8 +41,9 @@ kind clusters blocking NodePorts 30080/30443 are removed automatically.
 | What | URL | Credentials |
 |------|-----|---------------|
 | Argo CD | https://argocd.localhost:30443/ | `admin` — password in `.state/argocd.env` |
-| IBM MQ web console | https://mq.localhost:30443/ibmmq/console/ | `admin` / `passw0rd` |
-| IBM MQ admin REST | https://mq.localhost:30443/ibmmq/rest/v2/admin/qmgr | `admin` / `passw0rd` |
+| IBM MQ web console (UI) | https://mq.localhost:30443/ibmmq/console/ | `admin` / `passw0rd` |
+| IBM MQ admin REST | https://mq.localhost:30443/ibmmq/rest/v3/admin/qmgr | `admin` / `passw0rd` |
+| MQSC CLI | `task mq:cli` or `task mq:runmqsc -- "DISPLAY QLOCAL(*)"` | (in-cluster `runmqsc`) |
 | Grafana | https://grafana.localhost:30443/ | `admin` / `admin` |
 
 In-cluster: `https://ibm-mq.ibm-mq.svc:9443` (`QueueManagerConnection.endpoint`).
@@ -58,7 +59,8 @@ task local:deploy    # operator + samples only
 task local:info      # URLs + qmc/queue status
 ```
 
-See [docs/DEVELOPMENT.md](../../docs/DEVELOPMENT.md) and
+See [docs/DEVELOPMENT.md](../../docs/DEVELOPMENT.md),
+[docs/IBM_MQ_101.md](../../docs/IBM_MQ_101.md) (console, CLI, operator checks), and
 [charts/kurator/README.md](../../charts/kurator/README.md).
 
 ## Notes
