@@ -158,9 +158,9 @@ belt-and-suspenders on top of discipline in call sites.
 
 - ~~Phase 1: replace zap bootstrap, configurable slog in `internal/logging`, flags/env/file,
   Deployment defaults, and logging unit tests~~ (done; see [LOGGING.md](../LOGGING.md)).
-- Phase 2: reconciler logging conventions per LOG-4 in all controllers.
-- Phase 2: extend redacting handler tests as mqrest logging lands.
-- Phase 2: optional `log/slog` **test** usage only inside `mqrest` adapter tests if
+- ~~Phase 2: reconciler logging conventions per LOG-4 in all controllers~~ (done).
+- ~~Phase 2: extend redacting handler tests as mqrest logging lands~~ (done).
+- Optional: `log/slog` **test** usage only inside `mqrest` adapter tests if
   asserting debug output — still not in production adapter code (use `logr` there).
 
 ## Alternatives considered

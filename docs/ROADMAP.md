@@ -83,16 +83,13 @@ locally and in CI — **met**.
   `values-kind.yaml`, sample Secret + CRs under `charts/kurator/samples/resources/`.
 - [x] Local workflow tasks: `deploy:helm`, `deploy:samples`, `local:up` /
   `local:deploy` / `local:info` / `local:down`.
-- [x] README + [DEVELOPMENT.md](DEVELOPMENT.md) — full local setup documented;
-  `hack/kind-cluster/README.md` cross-linked.
+- [x] README + [DEVELOPMENT.md](DEVELOPMENT.md) + [LOCAL_SETUP.md](LOCAL_SETUP.md)
+  — local setup documented; `hack/kind-cluster/README.md` cross-linked.
 - [x] Optional local `docs/REFERENCES.md` (from [REFERENCES.md.example](REFERENCES.md.example)) + `references/` clones (both gitignored)
   for vendored IBM MQ sample trees — not published in the repository.
 - [x] `setup-envtest` wired in `Taskfile.test.yml` (`KUBEBUILDER_ASSETS`).
 - [x] Manual validation on kind: `QueueManagerConnection` reaches **Ready** against
   live `QM1`; operator reaches mqweb in-cluster.
-
-**Remaining before Phase 2 is fully closed:**
-
 - [x] Fix **DISPLAY QLOCAL** on live MQ — drop `maxmsglen` from display parameters
   (mqweb 9.4 returns `MQWB0120E`); coerce numeric DEFINE attrs; **Queue** reaches
   **Synced=True** on `task local:up`.
@@ -155,7 +152,7 @@ before access-control work.
 
 Exit criteria: at least **Topic** and one **Channel** kind reconcile end-to-end on
 kind with the same quality bar as Phase 2 (`verify`, ≥85% `internal/` coverage,
-e2e green).
+e2e green) — **met** (optional DISPLAY/TLS drift extensions above remain open).
 
 ## Phase 4b — Validating admission webhooks (pre–Phase 5)
 
@@ -165,9 +162,9 @@ e2e green).
 - [x] Queue: MQ name constraints; alias/remote required attributes; optional unknown-attribute warnings.
 - [x] Topic/Channel: name constraints; channel `svrconn` only.
 - [x] Unit tests (`internal/validation`) + envtest admission tests; optional e2e negative apply.
-- [ ] Optional: deny `QueueManagerConnection` delete while dependent CRs exist.
+- [x] Optional: deny `QueueManagerConnection` delete while dependent CRs exist.
 
-Exit criteria: invalid sample manifests rejected by `kubectl apply`; `task test:run` includes webhook admission tests; kind/Helm install enables webhooks by default.
+Exit criteria: **met** — invalid manifests rejected by `kubectl apply` on kind (Kustomize and Helm verified); `task test:run` includes webhook envtest suite; see [plans/VALIDATING_WEBHOOKS_FOLLOWUPS.md](plans/VALIDATING_WEBHOOKS_FOLLOWUPS.md).
 
 ## Phase 5 — User & authority management
 
@@ -192,6 +189,8 @@ reconciled on kind with e2e coverage.
   [goreportcard.com/report/github.com/konih/kurator](https://goreportcard.com/report/github.com/konih/kurator)
   after significant API changes (uses module path from `go.mod`).
 - [x] Release badge — [`README.md`](../README.md) links GitHub Releases (`v0.1.0`).
+- [x] [LOCAL_SETUP.md](LOCAL_SETUP.md) — tiered dev tool install (`Brewfile`,
+  `task tools:check` / `task tools:install`, updated `.devcontainer/`).
 
 ## Later / candidate work
 

@@ -86,7 +86,7 @@ These are enforced by review, tests, and (where noted) CI.
 | LOG-1 | Application code uses `logr` only; bootstrap uses `slog` via `internal/logging`. | Review, import lint |
 | LOG-2 | Logs are structured (JSON in production) with stable `lowerCamelCase` keys. | OBS-4; sample output tests |
 | LOG-3 | Level and format are configurable at runtime without rebuild (file, env, flags). | OPS-4; config unit tests |
-| LOG-4 | Per-reconcile loggers include `controller`, `namespace`, and `name` (plus resource-specific keys). | Review (Phase 2 reconcilers) |
+| LOG-4 | Per-reconcile loggers include `controller`, `namespace`, and `name` (plus resource-specific keys). | Review (all reconcilers) |
 | LOG-5 | No Secret values, passwords, tokens, CSRF headers, or credentialed HTTP bodies at default levels. | SEC-5; redacting handler + review |
 | LOG-6 | `log.V(1)` is used for high-volume detail; disabled when level is `info` or higher. | Level filter tests |
 
@@ -125,7 +125,7 @@ The redacting handler masks common sensitive **attribute keys** (`password`,
 `token`, `authorization`, etc.) as a safety net; do not rely on it instead of
 discipline at call sites.
 
-### Reconcile pattern (Phase 2+)
+### Reconcile pattern (all reconcilers)
 
 ```go
 log := log.FromContext(ctx).WithValues(

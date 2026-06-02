@@ -4,8 +4,9 @@ This document describes the continuous integration and delivery design for
 **Kurator**. The guiding principle: **the same checks run locally
 (via Task and pre-commit) and in CI**, so "green locally" means "green in CI".
 
-CI runs on **GitHub Actions**. Workflows land with the Phase 1 scaffold
-([ROADMAP.md](ROADMAP.md)); this doc is the contract they implement.
+CI runs on **GitHub Actions** per the workflows under `.github/workflows/`
+(`ci.yaml`, `integration.yaml`, `e2e.yaml`, `release.yaml`). This doc is the
+contract they implement. See [ROADMAP.md](ROADMAP.md) for delivery context.
 
 ## Principles
 

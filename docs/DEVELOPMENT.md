@@ -43,6 +43,8 @@ Platform-only commands live under `task cluster:*` (see
 
 | Task | What it does |
 |------|----------------|
+| `task tools:check` | Verify dev tools by tier A/B/C (`TOOLS_TIER` env) |
+| `task tools:install` | Download CI-pinned kind/mkcert/task/terraform into `bin/` |
 | `task local:up` | kind cluster + IBM MQ + operator (Helm) + sample CRs |
 | `task local:info` | URLs, credentials, CR status |
 | `task local:deploy` | Rebuild image, helm upgrade, re-apply samples (cluster already up) |
@@ -57,6 +59,9 @@ Platform-only commands live under `task cluster:*` (see
 | `task mq:cli` | Interactive `runmqsc` on QM1 |
 | `task mq:runmqsc` | One-shot `runmqsc` (pass MQSC as args) |
 | `task test:run` | Unit + envtest (`-race`) |
+| `task test:integration` | MQ integration tests vs Docker mqweb (`KURATOR_INTEGRATION_MQ=1`) |
+| `task test:integration:local` | Docker MQ up + wait + integration tests |
+| `task ci:integration` | Same as GitHub Actions integration job |
 | `task test:e2e` | E2E on kind (set `KURATOR_E2E_MQ=1` for IBM MQ scenarios) |
 | `task ci:e2e` | Same as GitHub Actions e2e job (`cluster:up` + MQ wait + tests) |
 | `task changelog` | Preview unreleased changelog (`git-cliff`; see [CICD.md](CICD.md)) |
