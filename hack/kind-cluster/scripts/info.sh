@@ -27,4 +27,9 @@ Host access (via HAProxy ingress NodePort 30443, mkcert TLS):
 
 In-cluster (QueueManagerConnection.endpoint):
   - https://ibm-mq.ibm-mq.svc:9443
+
+MQSC CLI (from repo root):
+  - task mq:cli
+  - task mq:runmqsc -- "DISPLAY QLOCAL('APP.ORDERS')"
+  - docs/IBM_MQ_101.md — verify Kurator + IBM MQ
 EOF

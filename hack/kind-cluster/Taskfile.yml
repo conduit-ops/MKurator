@@ -38,6 +38,21 @@ tasks:
     cmds:
       - ./scripts/info.sh
 
+  mq:console:
+    desc: Print IBM MQ web console URL and login (admin / passw0rd)
+    cmds:
+      - ./scripts/mq-console-url.sh
+
+  mq:cli:
+    desc: Interactive runmqsc on queue manager QM1 in the ibm-mq pod
+    cmds:
+      - ./scripts/mq-cli.sh
+
+  mq:runmqsc:
+    desc: Run one MQSC command on QM1 (e.g. task cluster:mq:runmqsc -- "DISPLAY QLOCAL(*)")
+    cmds:
+      - ./scripts/mq-cli.sh {{.CLI_ARGS}}
+
   up:
     desc: Full bring-up (kind, tls, terraform), then print access info
     cmds:
