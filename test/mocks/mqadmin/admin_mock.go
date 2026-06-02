@@ -135,6 +135,63 @@ func (_m *MockAdmin) EXPECT() *MockAdmin_Expecter {
 	return &MockAdmin_Expecter{mock: &_m.Mock}
 }
 
+// DefineChannel provides a mock function for the type MockAdmin
+func (_mock *MockAdmin) DefineChannel(ctx context.Context, spec mqadmin.ChannelSpec) error {
+	ret := _mock.Called(ctx, spec)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DefineChannel")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, mqadmin.ChannelSpec) error); ok {
+		r0 = returnFunc(ctx, spec)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockAdmin_DefineChannel_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DefineChannel'
+type MockAdmin_DefineChannel_Call struct {
+	*mock.Call
+}
+
+// DefineChannel is a helper method to define mock.On call
+//   - ctx context.Context
+//   - spec mqadmin.ChannelSpec
+func (_e *MockAdmin_Expecter) DefineChannel(ctx interface{}, spec interface{}) *MockAdmin_DefineChannel_Call {
+	return &MockAdmin_DefineChannel_Call{Call: _e.mock.On("DefineChannel", ctx, spec)}
+}
+
+func (_c *MockAdmin_DefineChannel_Call) Run(run func(ctx context.Context, spec mqadmin.ChannelSpec)) *MockAdmin_DefineChannel_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 mqadmin.ChannelSpec
+		if args[1] != nil {
+			arg1 = args[1].(mqadmin.ChannelSpec)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAdmin_DefineChannel_Call) Return(err error) *MockAdmin_DefineChannel_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockAdmin_DefineChannel_Call) RunAndReturn(run func(ctx context.Context, spec mqadmin.ChannelSpec) error) *MockAdmin_DefineChannel_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // DefineQueue provides a mock function for the type MockAdmin
 func (_mock *MockAdmin) DefineQueue(ctx context.Context, spec mqadmin.QueueSpec) error {
 	ret := _mock.Called(ctx, spec)
@@ -192,6 +249,120 @@ func (_c *MockAdmin_DefineQueue_Call) RunAndReturn(run func(ctx context.Context,
 	return _c
 }
 
+// DefineTopic provides a mock function for the type MockAdmin
+func (_mock *MockAdmin) DefineTopic(ctx context.Context, spec mqadmin.TopicSpec) error {
+	ret := _mock.Called(ctx, spec)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DefineTopic")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, mqadmin.TopicSpec) error); ok {
+		r0 = returnFunc(ctx, spec)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockAdmin_DefineTopic_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DefineTopic'
+type MockAdmin_DefineTopic_Call struct {
+	*mock.Call
+}
+
+// DefineTopic is a helper method to define mock.On call
+//   - ctx context.Context
+//   - spec mqadmin.TopicSpec
+func (_e *MockAdmin_Expecter) DefineTopic(ctx interface{}, spec interface{}) *MockAdmin_DefineTopic_Call {
+	return &MockAdmin_DefineTopic_Call{Call: _e.mock.On("DefineTopic", ctx, spec)}
+}
+
+func (_c *MockAdmin_DefineTopic_Call) Run(run func(ctx context.Context, spec mqadmin.TopicSpec)) *MockAdmin_DefineTopic_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 mqadmin.TopicSpec
+		if args[1] != nil {
+			arg1 = args[1].(mqadmin.TopicSpec)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAdmin_DefineTopic_Call) Return(err error) *MockAdmin_DefineTopic_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockAdmin_DefineTopic_Call) RunAndReturn(run func(ctx context.Context, spec mqadmin.TopicSpec) error) *MockAdmin_DefineTopic_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DeleteChannel provides a mock function for the type MockAdmin
+func (_mock *MockAdmin) DeleteChannel(ctx context.Context, spec mqadmin.ChannelSpec) error {
+	ret := _mock.Called(ctx, spec)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteChannel")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, mqadmin.ChannelSpec) error); ok {
+		r0 = returnFunc(ctx, spec)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockAdmin_DeleteChannel_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteChannel'
+type MockAdmin_DeleteChannel_Call struct {
+	*mock.Call
+}
+
+// DeleteChannel is a helper method to define mock.On call
+//   - ctx context.Context
+//   - spec mqadmin.ChannelSpec
+func (_e *MockAdmin_Expecter) DeleteChannel(ctx interface{}, spec interface{}) *MockAdmin_DeleteChannel_Call {
+	return &MockAdmin_DeleteChannel_Call{Call: _e.mock.On("DeleteChannel", ctx, spec)}
+}
+
+func (_c *MockAdmin_DeleteChannel_Call) Run(run func(ctx context.Context, spec mqadmin.ChannelSpec)) *MockAdmin_DeleteChannel_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 mqadmin.ChannelSpec
+		if args[1] != nil {
+			arg1 = args[1].(mqadmin.ChannelSpec)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAdmin_DeleteChannel_Call) Return(err error) *MockAdmin_DeleteChannel_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockAdmin_DeleteChannel_Call) RunAndReturn(run func(ctx context.Context, spec mqadmin.ChannelSpec) error) *MockAdmin_DeleteChannel_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // DeleteQueue provides a mock function for the type MockAdmin
 func (_mock *MockAdmin) DeleteQueue(ctx context.Context, name string) error {
 	ret := _mock.Called(ctx, name)
@@ -245,6 +416,131 @@ func (_c *MockAdmin_DeleteQueue_Call) Return(err error) *MockAdmin_DeleteQueue_C
 }
 
 func (_c *MockAdmin_DeleteQueue_Call) RunAndReturn(run func(ctx context.Context, name string) error) *MockAdmin_DeleteQueue_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DeleteTopic provides a mock function for the type MockAdmin
+func (_mock *MockAdmin) DeleteTopic(ctx context.Context, name string) error {
+	ret := _mock.Called(ctx, name)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteTopic")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) error); ok {
+		r0 = returnFunc(ctx, name)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockAdmin_DeleteTopic_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteTopic'
+type MockAdmin_DeleteTopic_Call struct {
+	*mock.Call
+}
+
+// DeleteTopic is a helper method to define mock.On call
+//   - ctx context.Context
+//   - name string
+func (_e *MockAdmin_Expecter) DeleteTopic(ctx interface{}, name interface{}) *MockAdmin_DeleteTopic_Call {
+	return &MockAdmin_DeleteTopic_Call{Call: _e.mock.On("DeleteTopic", ctx, name)}
+}
+
+func (_c *MockAdmin_DeleteTopic_Call) Run(run func(ctx context.Context, name string)) *MockAdmin_DeleteTopic_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAdmin_DeleteTopic_Call) Return(err error) *MockAdmin_DeleteTopic_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockAdmin_DeleteTopic_Call) RunAndReturn(run func(ctx context.Context, name string) error) *MockAdmin_DeleteTopic_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetChannel provides a mock function for the type MockAdmin
+func (_mock *MockAdmin) GetChannel(ctx context.Context, spec mqadmin.ChannelSpec) (*mqadmin.ChannelState, error) {
+	ret := _mock.Called(ctx, spec)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetChannel")
+	}
+
+	var r0 *mqadmin.ChannelState
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, mqadmin.ChannelSpec) (*mqadmin.ChannelState, error)); ok {
+		return returnFunc(ctx, spec)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, mqadmin.ChannelSpec) *mqadmin.ChannelState); ok {
+		r0 = returnFunc(ctx, spec)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*mqadmin.ChannelState)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, mqadmin.ChannelSpec) error); ok {
+		r1 = returnFunc(ctx, spec)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockAdmin_GetChannel_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetChannel'
+type MockAdmin_GetChannel_Call struct {
+	*mock.Call
+}
+
+// GetChannel is a helper method to define mock.On call
+//   - ctx context.Context
+//   - spec mqadmin.ChannelSpec
+func (_e *MockAdmin_Expecter) GetChannel(ctx interface{}, spec interface{}) *MockAdmin_GetChannel_Call {
+	return &MockAdmin_GetChannel_Call{Call: _e.mock.On("GetChannel", ctx, spec)}
+}
+
+func (_c *MockAdmin_GetChannel_Call) Run(run func(ctx context.Context, spec mqadmin.ChannelSpec)) *MockAdmin_GetChannel_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 mqadmin.ChannelSpec
+		if args[1] != nil {
+			arg1 = args[1].(mqadmin.ChannelSpec)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAdmin_GetChannel_Call) Return(channelState *mqadmin.ChannelState, err error) *MockAdmin_GetChannel_Call {
+	_c.Call.Return(channelState, err)
+	return _c
+}
+
+func (_c *MockAdmin_GetChannel_Call) RunAndReturn(run func(ctx context.Context, spec mqadmin.ChannelSpec) (*mqadmin.ChannelState, error)) *MockAdmin_GetChannel_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -313,6 +609,74 @@ func (_c *MockAdmin_GetQueue_Call) Return(queueState *mqadmin.QueueState, err er
 }
 
 func (_c *MockAdmin_GetQueue_Call) RunAndReturn(run func(ctx context.Context, name string) (*mqadmin.QueueState, error)) *MockAdmin_GetQueue_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetTopic provides a mock function for the type MockAdmin
+func (_mock *MockAdmin) GetTopic(ctx context.Context, name string) (*mqadmin.TopicState, error) {
+	ret := _mock.Called(ctx, name)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetTopic")
+	}
+
+	var r0 *mqadmin.TopicState
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (*mqadmin.TopicState, error)); ok {
+		return returnFunc(ctx, name)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) *mqadmin.TopicState); ok {
+		r0 = returnFunc(ctx, name)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*mqadmin.TopicState)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(ctx, name)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockAdmin_GetTopic_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetTopic'
+type MockAdmin_GetTopic_Call struct {
+	*mock.Call
+}
+
+// GetTopic is a helper method to define mock.On call
+//   - ctx context.Context
+//   - name string
+func (_e *MockAdmin_Expecter) GetTopic(ctx interface{}, name interface{}) *MockAdmin_GetTopic_Call {
+	return &MockAdmin_GetTopic_Call{Call: _e.mock.On("GetTopic", ctx, name)}
+}
+
+func (_c *MockAdmin_GetTopic_Call) Run(run func(ctx context.Context, name string)) *MockAdmin_GetTopic_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAdmin_GetTopic_Call) Return(topicState *mqadmin.TopicState, err error) *MockAdmin_GetTopic_Call {
+	_c.Call.Return(topicState, err)
+	return _c
+}
+
+func (_c *MockAdmin_GetTopic_Call) RunAndReturn(run func(ctx context.Context, name string) (*mqadmin.TopicState, error)) *MockAdmin_GetTopic_Call {
 	_c.Call.Return(run)
 	return _c
 }

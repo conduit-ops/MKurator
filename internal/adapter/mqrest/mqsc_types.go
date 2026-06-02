@@ -81,6 +81,25 @@ func (r *mqscResponse) terminalError(msg string) error {
 	}
 }
 
+func (r *mqscResponse) firstObjectAttributes() (map[string]string, error) {
+	if len(r.CommandResponse) == 0 {
+		return nil, &mqadmin.NotFoundError{Object: ""}
+	}
+	attrs := map[string]string{}
+	for _, cr := range r.CommandResponse {
+		for k, v := range cr.Parameters {
+			attrs[strings.ToLower(k)] = fmt.Sprint(v)
+		}
+	}
+	if len(attrs) == 0 && r.overallFailed() {
+		if r.isObjectMissing() {
+			return nil, &mqadmin.NotFoundError{Object: ""}
+		}
+		return nil, r.terminalError("display object")
+	}
+	return attrs, nil
+}
+
 func (r *mqscResponse) firstMessage() string {
 	for _, cr := range r.CommandResponse {
 		if len(cr.Message) > 0 {

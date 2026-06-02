@@ -1,6 +1,7 @@
 package mqrest
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -8,12 +9,16 @@ import (
 )
 
 const attrMaxDepth = "maxdepth"
+const attrDescr = "descr"
+const attrMaxMsgl = "maxmsgl"
+const attrTopstr = "topstr"
+const attrTopicStr = "topicStr" // mqweb runCommandJSON name for TOPSTR
 
 // queueDisplayParameters lists attributes safe for runCommandJSON DISPLAY qlocal
 // on IBM MQ 9.4.x. Some keywords (e.g. maxmsglen) are rejected by mqweb with
 // MQWB0120E even though they are valid on DEFINE.
 var queueDisplayParameters = []string{
-	attrMaxDepth, "descr", "defpsist", "get", "put",
+	attrMaxDepth, attrDescr, "defpsist", "get", "put",
 }
 
 // queueNumericParameters are coerced to JSON numbers for runCommandJSON DEFINE.
@@ -22,17 +27,91 @@ var queueNumericParameters = map[string]struct{}{
 	"maxmsglen":  {},
 }
 
-func defineQueueParameters(spec mqadmin.QueueSpec) map[string]any {
-	params := map[string]any{"replace": "yes"}
-	for k, v := range spec.Attributes {
+var channelNumericParameters = map[string]struct{}{
+	"sharecnv":  {},
+	attrMaxMsgl: {},
+	"maxinst":   {},
+	"maxinstc":  {},
+}
+
+// topicDisplayParameters lists attributes safe for DISPLAY topic on IBM MQ 9.4.x
+// mqweb (pubscope/subscope may return MQWB0120E on some QM levels).
+var topicDisplayParameters = []string{
+	attrTopicStr, attrDescr, "pub", "sub", "defpsist",
+}
+
+var channelDisplayParameters = []string{
+	attrDescr, "trptype", "sharecnv", attrMaxMsgl, "mcauser",
+}
+
+func defineTopicParameters(spec mqadmin.TopicSpec) map[string]any {
+	params := defineObjectParameters(spec.Attributes, nil)
+	mapTopicRESTParameters(params)
+	return params
+}
+
+// mapTopicRESTParameters translates CRD/MQSC attribute names to mqweb JSON names.
+func mapTopicRESTParameters(params map[string]any) {
+	if v, ok := params[attrTopstr]; ok {
+		params[attrTopicStr] = v
+		delete(params, attrTopstr)
+	}
+	for _, key := range []string{"pub", "sub"} {
+		if v, ok := params[key]; ok {
+			params[key] = strings.ToUpper(fmt.Sprint(v))
+		}
+	}
+}
+
+func normalizeTopicAttributes(attrs map[string]string) {
+	if v, ok := attrs[strings.ToLower(attrTopicStr)]; ok {
+		attrs[attrTopstr] = v
+	}
+}
+
+func defineChannelParameters(spec mqadmin.ChannelSpec) map[string]any {
+	params := defineObjectParameters(spec.Attributes, channelNumericParameters)
+	if spec.Type != "" {
+		params["chltype"] = string(spec.Type)
+	}
+	return params
+}
+
+func defineObjectParameters(
+	attrs map[string]string,
+	numericKeys map[string]struct{},
+) map[string]any {
+	params := map[string]any{"replace": mqscReplaceYes}
+	for k, v := range attrs {
 		key := strings.ToLower(k)
-		if _, numeric := queueNumericParameters[key]; numeric {
-			if n, err := strconv.Atoi(v); err == nil {
-				params[key] = n
-				continue
+		if numericKeys != nil {
+			if _, numeric := numericKeys[key]; numeric {
+				if n, err := strconv.Atoi(v); err == nil {
+					params[key] = n
+					continue
+				}
 			}
 		}
 		params[key] = v
 	}
 	return params
+}
+
+func defineQueueParameters(spec mqadmin.QueueSpec) map[string]any {
+	return defineObjectParameters(spec.Attributes, queueNumericParameters)
+}
+
+func channelDisplayRequest(name string, chlType mqadmin.ChannelType) runCommandJSONRequest {
+	params := map[string]any{}
+	if chlType != "" {
+		params["chltype"] = string(chlType)
+	}
+	return runCommandJSONRequest{
+		Type:               mqscType,
+		Command:            mqscCommandDisplay,
+		Qualifier:          qualifierChannel,
+		Name:               name,
+		Parameters:         params,
+		ResponseParameters: append([]string(nil), channelDisplayParameters...),
+	}
 }

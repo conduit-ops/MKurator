@@ -14,16 +14,24 @@ const (
 // Controller names used as the controller label value.
 const (
 	ControllerQueue                  = "queue"
+	ControllerTopic                  = "topic"
+	ControllerChannel                = "channel"
 	ControllerQueueManagerConnection = "queuemanagerconnection"
 )
 
 // MQ operation names for mqweb adapter metrics.
 const (
-	MQOpPing        = "ping"
-	MQOpGetQueue    = "get_queue"
-	MQOpDefineQueue = "define_queue"
-	MQOpDeleteQueue = "delete_queue"
-	MQOpRunMQSC     = "run_mqsc"
+	MQOpPing          = "ping"
+	MQOpGetQueue      = "get_queue"
+	MQOpDefineQueue   = "define_queue"
+	MQOpDeleteQueue   = "delete_queue"
+	MQOpGetTopic      = "get_topic"
+	MQOpDefineTopic   = "define_topic"
+	MQOpDeleteTopic   = "delete_topic"
+	MQOpGetChannel    = "get_channel"
+	MQOpDefineChannel = "define_channel"
+	MQOpDeleteChannel = "delete_channel"
+	MQOpRunMQSC       = "run_mqsc"
 )
 
 var (
