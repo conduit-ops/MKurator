@@ -49,14 +49,17 @@ In-cluster: `https://ibm-mq.ibm-mq.svc:9443` (`QueueManagerConnection.endpoint`)
 
 ## Kurator operator on this cluster
 
-From the repository root (after `task cluster:up`):
+From the repository root:
 
 ```sh
-task deploy:helm
-task deploy:samples
+task local:up        # cluster + MQ + operator + sample CRs (one shot)
+# or, if the cluster is already up:
+task local:deploy    # operator + samples only
+task local:info      # URLs + qmc/queue status
 ```
 
-See [charts/kurator/README.md](../../charts/kurator/README.md).
+See [docs/DEVELOPMENT.md](../../docs/DEVELOPMENT.md) and
+[charts/kurator/README.md](../../charts/kurator/README.md).
 
 ## Notes
 
