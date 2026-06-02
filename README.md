@@ -3,8 +3,8 @@
 A Kubernetes operator for declaratively managing **resources on an existing
 IBM MQ Queue Manager** — queues today, users/authorities and more later.
 
-> Status: **early / work in progress.** The design is set; implementation is
-> being built out in phases. See the [roadmap](docs/ROADMAP.md).
+> Status: **early / work in progress.** Core reconcile paths exist; see the
+> [roadmap](docs/ROADMAP.md).
 
 ## What it does
 
@@ -17,34 +17,68 @@ IBM MQ Queue Manager** — queues today, users/authorities and more later.
 It does **not** deploy or operate Queue Manager installations; the Queue
 Manager is assumed to already exist and expose `mqweb`.
 
+## Local development (quick start)
+
+The repo ships a **kind + Terraform + IBM MQ** platform under
+[`hack/kind-cluster`](hack/kind-cluster/README.md). One command brings up the
+cluster, Queue Manager, and operator with sample CRs:
+
+```sh
+# Prerequisites: Go, Task, Docker, kind, kubectl, Terraform, Helm, mkcert
+# Optional: direnv (loads KUBECONFIG from .envrc)
+
+task local:up      # cluster + IBM MQ + operator (Helm) + sample Queue/Connection
+task local:info    # URLs, credentials, CR status
+task local:down    # tear everything down
+```
+
+**Inner loop** (no cluster — mocks + envtest):
+
+```sh
+task install && task lint && task test:run && task build
+```
+
+**Incremental** (cluster already running):
+
+```sh
+task local:deploy          # rebuild image, helm upgrade, re-apply samples
+task deploy:samples        # only sample Secret + CRs
+```
+
+| Task | What it does |
+|------|----------------|
+| `task cluster:up` | kind cluster + ingress + cert-manager + monitoring + IBM MQ |
+| `task cluster:info` | MQ/Grafana/Argo CD URLs and passwords |
+| `task cluster:down` | Destroy platform and delete kind cluster |
+| `task deploy` | Operator via Kustomize (`config/default` + CRDs) |
+| `task deploy:helm` | Operator via [Helm chart](charts/kurator/README.md) (recommended on kind) |
+| `task deploy:samples` | `mq-credentials` Secret + `QueueManagerConnection` + `Queue` for `QM1` |
+| `task test:run` | Unit + envtest (`-race`) |
+| `task test:e2e` | E2E on kind (set `KURATOR_E2E_MQ=1` for IBM MQ scenarios) |
+
+After `task local:up`, check reconciliation:
+
+```sh
+kubectl get qmc,queue -n kurator-system
+kubectl logs -n kurator-system deployment/kurator-controller-manager -f
+```
+
+Defaults match the local platform: Queue Manager **`QM1`**, mqweb
+**`https://ibm-mq.ibm-mq.svc:9443`**, admin user **`admin`** / **`passw0rd`**
+(local dev only). Full detail: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
+
 ## Documentation
 
 - [AGENTS.md](AGENTS.md) — context, conventions, toolchain, and doc map.
+- [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) — prerequisites, local platform, deploy, test tiers.
+- [hack/kind-cluster/README.md](hack/kind-cluster/README.md) — kind/Terraform/MQ platform only.
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — components, runtime, CRDs, reconcile flow, security.
 - [docs/NON_FUNCTIONAL_REQUIREMENTS.md](docs/NON_FUNCTIONAL_REQUIREMENTS.md) — quality bars.
-- [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) — set up, build, test, run locally.
 - [docs/CICD.md](docs/CICD.md) — CI/CD pipeline design.
 - [docs/adr/](docs/adr/) — architecture decision records.
 - [docs/ROADMAP.md](docs/ROADMAP.md) — phased delivery plan.
-- [docs/REFERENCES.md.example](docs/REFERENCES.md.example) — IBM MQ sample repos map (local copy: `docs/REFERENCES.md`).
 - [charts/kurator/README.md](charts/kurator/README.md) — Helm chart to install the operator.
 - [SECURITY.md](SECURITY.md) — security posture and reporting.
-
-## Planned workflow
-
-Development is driven by [Task](https://taskfile.dev) with a local
-[kind](https://kind.sigs.k8s.io/) cluster (see [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)):
-
-```sh
-task cluster:up   # local platform: kind + ingress + cert-manager + IBM MQ
-task build        # build the manager (CGO-free, static)
-task deploy       # install CRDs + operator
-task test:run     # unit + envtest suites (Ginkgo)
-task test:e2e     # end-to-end against the local Queue Manager
-```
-
-(Task targets land with the Phase 1 scaffold; see the roadmap. The
-`hack/kind-cluster` platform works today via its scripts.)
 
 ## License
 

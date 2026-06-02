@@ -229,9 +229,12 @@ See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for how to run each tier.
 | `task verify` | Fail if generated artifacts (manifests/deepcopy/mocks) are stale |
 | `task build` | Build the manager binary (CGO-free, static) |
 | `task docker:build` | Build the controller-manager image |
-| `task cluster:up` / `task cluster:down` | Bring up/tear down the local kind platform (`hack/kind-cluster`) |
-| `task deploy` / `task deploy:helm` | Install operator (Kustomize or Helm) |
-| `task deploy:samples` | Apply sample CRs after install |
+| `task local:up` / `task local:down` | Full local stack: kind + IBM MQ + operator + samples / teardown |
+| `task local:deploy` / `task local:info` | Refresh operator on existing cluster / URLs + CR status |
+| `task cluster:up` / `task cluster:down` | Platform only (`hack/kind-cluster`) |
+| `task cluster:info` | Print MQ/Grafana/Argo CD URLs and credentials |
+| `task deploy` / `task deploy:helm` | Install operator (Kustomize or Helm; uses `go tool kustomize`) |
+| `task deploy:samples` | Apply sample Secret + CRs (`charts/kurator/samples/resources/`) |
 | `task undeploy` / `task undeploy:helm` | Remove operator |
 | `task helm:package` | Package `charts/kurator` for publish |
 | `task test:run` | Run unit + envtest suites (Ginkgo) |

@@ -21,13 +21,17 @@ helm upgrade --install kurator . \
 With the platform from [`hack/kind-cluster`](../../hack/kind-cluster/README.md):
 
 ```sh
+task local:up      # recommended: cluster + this chart + sample CRs
+# or step by step:
 task cluster:up
 task deploy:helm
-kubectl apply -k charts/kurator/samples/resources/
+task deploy:samples
 ```
 
 `deploy:helm` builds the dev image, loads it into the `kurator` kind cluster, and
 installs this chart with [`samples/values-kind.yaml`](samples/values-kind.yaml).
+`deploy:samples` applies [`samples/resources/`](samples/resources/) (Secret,
+`QueueManagerConnection`, `Queue` for `QM1`).
 
 Kustomize install (`task deploy`) remains available for controller-runtime workflows.
 

@@ -4,9 +4,23 @@ How to set up, build, test, and run **Kurator** locally. For
 conventions see [../AGENTS.md](../AGENTS.md); for design see
 [ARCHITECTURE.md](ARCHITECTURE.md).
 
-> Status: the Go project is scaffolded in [ROADMAP.md](ROADMAP.md) Phase 1. The
-> `hack/kind-cluster` local platform already exists and works today. Where a
-> `task` target does not exist yet, the equivalent script is given.
+## Quick start
+
+From the repository root (see [Prerequisites](#prerequisites)):
+
+```sh
+task local:up       # kind + IBM MQ + operator + sample CRs
+task local:info     # URLs, credentials, qmc/queue status
+# … hack on code …
+task local:deploy   # rebuild image and refresh operator + samples
+task local:down     # full teardown
+```
+
+Optional: enable [direnv](https://direnv.net/) so `.envrc` exports
+`KUBECONFIG=hack/kind-cluster/.state/kubeconfig.yaml` automatically.
+
+Platform-only commands live under `task cluster:*` (see
+[hack/kind-cluster/README.md](../hack/kind-cluster/README.md)).
 
 ## Prerequisites
 
@@ -104,35 +118,41 @@ written to `hack/kind-cluster/.state/`.
 
 ### Bring it up
 
-Via Task (once the root Taskfile lands):
-
 ```sh
-task cluster:up      # kind + mkcert TLS + terraform apply (ingress, cert-manager, monitoring, IBM MQ)
+task cluster:up      # kind + mkcert TLS + terraform (HAProxy ingress, cert-manager, Argo CD, monitoring, IBM MQ)
+task cluster:info    # re-print URLs and credentials
 ```
 
-Or directly with the scripts (works today):
+Equivalent scripts (if you prefer not to use Task):
 
 ```sh
 cd hack/kind-cluster
-./scripts/kind-up.sh           # create cluster; writes .state/kubeconfig.yaml
-./scripts/mkcert-gen.sh        # wildcard *.localhost cert -> .state/tls.env
-./scripts/terraform-apply.sh   # ingress-nginx, cert-manager, monitoring, IBM MQ
-./scripts/info.sh              # print URLs and credentials
+./scripts/kind-up.sh && ./scripts/mkcert-gen.sh && ./scripts/terraform-apply.sh
+./scripts/info.sh
 export KUBECONFIG="$(pwd)/.state/kubeconfig.yaml"
 ```
 
+`task cluster:up` is idempotent: an existing `kurator` kind cluster is reused.
+Override the cluster name with `CLUSTER_NAME=…` (legacy clusters may still be
+named `ibm-mq-operator`).
+
 ### Endpoints
+
+Printed by `task cluster:info` / `./scripts/info.sh` after bring-up:
 
 | Target | URL |
 |--------|-----|
 | IBM MQ web console | `https://mq.localhost:30443/ibmmq/console/` |
-| IBM MQ admin REST | `https://mq.localhost:30443/ibmmq/rest/v3/admin/qmgr` |
-| Grafana (if monitoring enabled) | `https://grafana.localhost:30443/` |
-| In-cluster mqweb (for `QueueManagerConnection.endpoint`) | `https://ibm-mq.ibm-mq.svc:9443` |
+| IBM MQ admin REST (via ingress) | `https://mq.localhost:30443/ibmmq/rest/v2/admin/qmgr` |
+| Argo CD | `https://argocd.localhost:30443/` |
+| Grafana | `https://grafana.localhost:30443/` |
+| In-cluster mqweb (`QueueManagerConnection.spec.endpoint`) | `https://ibm-mq.ibm-mq.svc:9443` |
 
-Defaults (override via Terraform variables): Queue Manager `QM1`, MQ admin user
-`admin`, namespace `ibm-mq`, credentials in the `mq-credentials` Secret. These
-are **local-dev defaults only** — never reuse them anywhere real.
+Defaults (override via Terraform variables in `hack/kind-cluster/terraform/`):
+Queue Manager **`QM1`**, MQ admin **`admin`** / **`passw0rd`**, namespace
+**`ibm-mq`**. Sample CRs use a `mq-credentials` Secret in **`kurator-system`**
+(see `charts/kurator/samples/resources/`). These are **local-dev defaults
+only** — never reuse them anywhere real.
 
 ## Deploying a queue manager for Kurator
 
@@ -151,13 +171,12 @@ This is what `hack/kind-cluster` provisions: the upstream
 
 ```sh
 task cluster:up
-# In-cluster endpoint for QueueManagerConnection:
-#   https://ibm-mq.ibm-mq.svc:9443
-kubectl apply -k config/samples
+task local:deploy    # or: task deploy:helm && task deploy:samples
 ```
 
-The operator pod resolves cluster DNS; your laptop can use the ingress URLs from
-`task cluster:info` for manual REST/console checks.
+The operator pod uses in-cluster DNS (`https://ibm-mq.ibm-mq.svc:9443`). Use
+ingress URLs from `task cluster:info` for browser console and manual REST
+checks from your laptop.
 
 ### Option B — IBM MQ Operator (OpenShift or EKS preview)
 
@@ -213,31 +232,48 @@ for CSRF, TLS, and MQSC endpoint details.
 
 ### Deploy the operator
 
-**Helm (recommended for kind):**
+| Task | Install path | When to use |
+|------|----------------|-------------|
+| `task local:up` | cluster + Helm + samples | First-time full stack |
+| `task local:deploy` | Helm + samples | Cluster/MQ already running |
+| `task deploy:helm` | Helm chart only | Operator only |
+| `task deploy:samples` | Sample Secret + CRs | After any operator install |
+| `task deploy` | Kustomize (`config/default` + CRDs) | controller-runtime / kubebuilder workflow |
+
+**Helm (recommended on kind):**
 
 ```sh
-task deploy:helm     # build image, load into kind, helm install charts/kurator
-task deploy:samples  # Secret + QueueManagerConnection + Queue for QM1
+task deploy:helm
+task deploy:samples
 ```
 
-**Kustomize (Kubebuilder default):**
+**Kustomize:**
 
 ```sh
-task deploy          # build image, load into kind, apply CRDs + manager
-kubectl apply -k config/samples
+task deploy
+kubectl apply -k config/samples    # legacy kubebuilder samples
+# or: task deploy:samples          # Helm-aligned samples (preferred)
 ```
 
-Both paths target namespace `kurator-system` and expect mqweb at
+`task deploy` uses `go tool kustomize` (pinned via `go.mod`) — no separate
+kustomize binary required.
+
+Both install paths target namespace **`kurator-system`** and expect mqweb at
 `https://ibm-mq.ibm-mq.svc:9443` after `task cluster:up`. Chart details:
 [charts/kurator/README.md](../charts/kurator/README.md).
 
 ### Tear down
 
 ```sh
-task cluster:down                      # delete the kind cluster
-# or, keep the cluster but remove provisioned resources:
-cd hack/kind-cluster && ./scripts/cleanup.sh
-DELETE_CLUSTER=true ./scripts/cleanup.sh   # also delete the cluster
+task local:down      # undeploy Helm/samples + delete kind cluster + wipe .state
+```
+
+Partial teardown:
+
+```sh
+task undeploy:helm   # remove operator and sample CRs; keep kind/MQ
+task cluster:cleanup # terraform destroy only (keeps kind cluster)
+task cluster:down    # full platform teardown
 ```
 
 ## Test tiers
@@ -265,16 +301,21 @@ Guidelines:
 
 ## Troubleshooting
 
-- **kind can't start / wrong runtime**: the scripts auto-detect docker →
-  nerdctl → podman; override with `KIND_EXPERIMENTAL_PROVIDER`.
-- **TLS not trusted in browser**: run `mkcert -install` once in an interactive
-  shell, then re-run `./scripts/mkcert-gen.sh`.
-- **IBM MQ pod slow to start**: the chart waits up to ~15 min; check
-  `kubectl -n ibm-mq get pods` and `kubectl -n ibm-mq logs`.
-- **mqweb 401/403**: confirm the `mq-credentials` Secret and the `MQWebAdmin`
-  role mapping; see [IBM_MQ_REST_API.md](IBM_MQ_REST_API.md).
-- **envtest binaries missing**: `task test:run` provisions them via
-  `setup-envtest`; ensure network access on first run.
+- **`kustomize: command not found`**: use `task deploy` (invokes `go tool
+  kustomize`) or `task deploy:helm`; do not call bare `kustomize` unless installed.
+- **kind can't start / wrong runtime**: scripts auto-detect docker → nerdctl →
+  podman; override with `KIND_EXPERIMENTAL_PROVIDER`.
+- **TLS not trusted in browser**: run `mkcert -install` once, then
+  `task cluster:tls` or re-run `task cluster:up`.
+- **IBM MQ pod slow to start**: chart wait up to ~15 min; check
+  `kubectl -n ibm-mq get pods` and logs.
+- **Queue `Synced=False` / MQSC errors**: check
+  `kubectl describe queue -n kurator-system` and operator logs; see
+  [IBM_MQ_REST_API.md](IBM_MQ_REST_API.md).
+- **mqweb 401/403**: confirm `mq-credentials` in `kurator-system` (samples use
+  `username` + `mqAdminPassword`; factory also accepts `password`).
+- **envtest binaries missing**: `task test:run` downloads them via
+  `setup-envtest` on first run (needs network).
 
 ## Before you push
 

@@ -15,7 +15,7 @@ quality bars, and [CICD.md](CICD.md) for the pipeline.
 - NFRs (security, reliability, observability) are built in per phase, not bolted
   on at the end.
 
-## Phase 0 — Foundations (this step)
+## Phase 0 — Foundations
 
 - [x] `AGENTS.md` with context, conventions, toolchain, and doc map.
 - [x] `docs/ARCHITECTURE.md` (runtime concerns, RBAC, error/requeue, security).
@@ -24,61 +24,121 @@ quality bars, and [CICD.md](CICD.md) for the pipeline.
 - [x] `SECURITY.md`, `README.md`, `docs/ROADMAP.md`.
 - [x] Local platform under `hack/kind-cluster` (kind + Terraform + IBM MQ).
 
+Exit criteria: design and local MQ platform documented and runnable — **met**.
+
 ## Phase 1 — Scaffold & toolchain
 
-- [x] Scaffold with **Kubebuilder v4** (manager entrypoint, `PROJECT`, `api/v1alpha1`,
-  `internal/controller`, structured logging).
+- [x] Scaffold with **Kubebuilder v4** (manager entrypoint, `PROJECT`, `api/v1alpha1`
+  group shell, `internal/controller` package, structured logging).
 - [x] `Taskfile.yml` + `Taskfile.test.yml` (install, format, lint, manifests,
-  generate, **verify**, build, docker:build, cluster:up/down, deploy/undeploy,
+  generate, **verify**, build, docker:build, `cluster:*`, deploy/undeploy,
   test:run, test:e2e), with Go tools pinned via `go.mod` `tool` directives.
 - [x] `.golangci.yaml` (v2), `.mockery.yaml`, `.pre-commit-config.yaml`,
   `.editorconfig`, distroless nonroot `Dockerfile`.
 - [x] Manager wiring with leader election, health/readiness probes, and a protected
   metrics endpoint (NFR REL-3/OBS-3).
 - [x] GitHub Actions per [CICD.md](CICD.md): `verify` + lint + unit tests +
-  `govulncheck` on PRs; pinned action SHAs; Renovate config.
+  `govulncheck` + **gitleaks** on PRs; pinned action SHAs.
+- [x] **Renovate** — `renovate.json` (Go, Actions, Docker, Terraform, pre-commit)
+  and a weekly self-hosted `.github/workflows/renovate.yaml` (no Mend app required).
+
+**Also delivered in Phase 1:**
+
+- [x] [ADR-0006](adr/0006-project-name-kurator.md) — project name, module path,
+  API group `messaging.kurator.dev`.
+- [x] [ADR-0007](adr/0007-structured-logging-logr-slog.md) + [LOGGING.md](LOGGING.md)
+  — `logr`/`slog`, redaction handler, manager flags/env.
+- [x] `hack/verify.sh` (codegen drift check) and `hack/goformat.sh`.
+- [x] **Secret scanning** — gitleaks in pre-commit (`.pre-commit-config.yaml`),
+  CI (`ci.yaml`), `task secrets:scan`, and `.gitleaks.toml` allowlists for local
+  dev artifacts (`references/`, kind cluster state, terraform state).
+- [x] `.envrc` — `KUBECONFIG` / `TF_VAR_kubeconfig` for the local kind cluster.
 
 Exit criteria: `task build`, `task lint`, `task verify`, and `task test:run` pass
 locally and in CI — **met**.
 
 ## Phase 2 — Core API, adapter & tests
 
-- `api/v1alpha1`: `QueueManagerConnection` and `Queue` types + generated
-  deepcopy and CRD manifests; basic validation (kubebuilder markers).
-- `internal/mqadmin`: the `MQAdmin` port and domain types.
-- `internal/adapter/mqrest`: `mqweb` REST client implementing `MQAdmin`
-  (define/inspect/delete queue, ping), with `httptest`-based unit tests.
-- `internal/controller`: thin reconcilers for both resources — finalizers,
-  drift detection, status conditions (`Ready`, `Synced`, `observedGeneration`).
-- Tests: mockery mocks of `MQAdmin`, unit tests for reconcilers, envtest for
-  API/controller integration. Maintain high coverage on `internal/`.
+- [x] `api/v1alpha1`: `QueueManagerConnection` and `Queue` types + generated
+  deepcopy and CRD manifests; kubebuilder validation and print columns.
+- [x] `internal/mqadmin`: `Admin` + `Factory` ports, domain types, sentinel errors.
+- [x] `internal/adapter/mqrest`: `mqweb` client (`Ping`, `GetQueue`, `DefineQueue`,
+  `DeleteQueue`) + `ClientFactory` (Secret/credential resolution, TLS, client cache).
+- [x] `internal/adapter/mqrest`: `httptest` unit tests (success, not-found, ping).
+- [x] `internal/controller`: thin reconcilers — finalizers, drift detection, status
+  conditions (`Ready`, `Synced`, `observedGeneration`); Queue waits for connection
+  `Ready` before calling MQ.
+- [x] Tests: mockery mocks (`test/mocks/mqadmin`), `needsUpdate` unit test,
+  Ginkgo envtest suite (controller + API server, mocked `Admin`).
+- [x] RBAC from reconciler markers (`controller-gen` paths include
+  `internal/controller/...`).
+- [x] `config/samples/` (Kustomize) and `config/crd/bases/`.
 
-Exit criteria: applying samples in envtest drives the expected `MQAdmin` calls;
-adapter unit tests cover success + error paths.
+**Also delivered in Phase 2:**
+
+- [x] [docs/schemas/](schemas/) — `mqsc-runcommand.schema.json` + README; optional
+  `scripts/fetch-mqweb-swagger.sh` for full mqweb Swagger export.
+- [x] `task deploy` — `go tool kustomize`, explicit CRD apply (no global kustomize).
+- [x] **`charts/kurator/`** — publishable Helm chart, `helm:sync-crds`, kind
+  `values-kind.yaml`, sample Secret + CRs under `charts/kurator/samples/resources/`.
+- [x] Local workflow tasks: `deploy:helm`, `deploy:samples`, `local:up` /
+  `local:deploy` / `local:info` / `local:down`.
+- [x] README + [DEVELOPMENT.md](DEVELOPMENT.md) — full local setup documented;
+  `hack/kind-cluster/README.md` cross-linked.
+- [x] [REFERENCES.md](REFERENCES.md) — vendored IBM MQ samples: what to reuse vs skip.
+- [x] `setup-envtest` wired in `Taskfile.test.yml` (`KUBEBUILDER_ASSETS`).
+- [x] Manual validation on kind: `QueueManagerConnection` reaches **Ready** against
+  live `QM1`; operator reaches mqweb in-cluster.
+
+**Remaining before Phase 2 is fully closed:**
+
+- [ ] Fix **DEFINE QLOCAL** via `runCommandJSON` on live MQ (observed `MQWB0120E`
+  HTTP 400 — likely `replace` / parameter shape); confirm **Queue** reaches
+  **Synced=True** on `task local:up`.
+- [ ] Raise `internal/` coverage where still thin (`cmd/`, `api/` excluded by design).
+
+Exit criteria:
+
+- [x] envtest drives expected `MQAdmin` calls (mocked) — **met**.
+- [x] adapter unit tests cover success + error paths — **met**.
+- [ ] live sample `Queue` reconciled on kind IBM MQ — **not met** (blocked on item above).
 
 ## Phase 3 — End-to-end & CI hardening
 
-- e2e suite (`test/e2e`, build tag `e2e`) on **kind** against the real IBM MQ
-  Queue Manager from `hack/kind-cluster`; assert real MQSC objects for
-  create/update/delete and re-apply idempotency (NFR REL-1). MQ scenarios require
-  `KURATOR_E2E_MQ=1`; channel/auth fixtures under `test/e2e/fixtures/` (from
-  mq-gitops-samples — see `test/e2e/fixtures/`).
-- Wire e2e into CI (kind in GitHub Actions) on a dedicated job.
-- Release workflow: multi-arch distroless image publish + Trivy image scan +
-  published Kustomize install manifests (NFR OPS-1/OPS-2, SEC-4/SEC-6).
-- Optional supply-chain extras (SBOM, signing) deferred per
+- [x] e2e scaffold (`test/e2e`, build tag `e2e`) — controller pod, metrics, suite
+  wiring on kind.
+- [x] MQ e2e scenarios (`test/e2e/mq_e2e_test.go`, `mq_helpers.go`) gated by
+  `KURATOR_E2E_MQ=1` — QueueManagerConnection + Queue CR apply, MQSC fixture
+  apply via mqweb; assert real MQSC objects for create/update/delete and re-apply
+  idempotency (NFR REL-1) once DEFINE QLOCAL is fixed (Phase 2 blocker).
+- [x] `test/e2e/fixtures/` — MQSC bootstrap for channels/auth (from
+  mq-gitops-samples); see [PHASE4_CHANNEL_AUTH.md](PHASE4_CHANNEL_AUTH.md).
+- [ ] Wire e2e into CI (kind in GitHub Actions) on a dedicated job.
+- [x] Release workflow (`.github/workflows/release.yaml`): multi-arch distroless
+  image publish to GHCR + Trivy image scan + published Kustomize/Helm install
+  manifests (`hack/release-assets.sh`, `charts/kurator/samples/values-release.yaml`,
+  `.trivyignore`) on `v*.*.*` tags (NFR OPS-1/OPS-2, SEC-4/SEC-6).
+- [ ] Optional supply-chain extras (SBOM, signing) deferred per
   [ADR-0005](adr/0005-keep-tooling-lean.md).
 
+**Also delivered in Phase 3:**
+
+- [x] Helm install path for local and release publish (`charts/kurator`, `task helm:*`).
+- [x] `RunMQSC` helper on `mqrest` client (`runCommand` plaintext) + unit test —
+  groundwork for e2e fixtures and Phase 4 MQSC.
+
 Exit criteria: `task test:e2e` green locally and in CI against a live Queue
-Manager; release pipeline produces a scanned image and install manifests.
+Manager; release pipeline produces a scanned image and install manifests —
+**partially met** (release pipeline done; e2e green locally blocked on DEFINE
+QLOCAL; e2e not yet in CI).
 
 ## Phase 4 — User & authority management
 
-- Extend the API toward MQ access control: authority records / channel auth /
-  user-style resources (exact CRDs decided when reached). See
-  [PHASE4_CHANNEL_AUTH.md](PHASE4_CHANNEL_AUTH.md) for a CR sketch mapped from
-  reference MQSC.
-- Corresponding `MQAdmin` operations, adapter support, and tests at all layers.
+- [x] [PHASE4_CHANNEL_AUTH.md](PHASE4_CHANNEL_AUTH.md) — CR sketch mapped from
+  reference MQSC; e2e fixture [`test/e2e/fixtures/channel-auth-prereq.mqsc`](../test/e2e/fixtures/channel-auth-prereq.mqsc).
+- [ ] Extend the API toward MQ access control: authority records / channel auth /
+  user-style resources (exact CRDs decided when reached).
+- [ ] Corresponding `MQAdmin` operations, adapter support, and tests at all layers.
 
 ## Later / candidate work
 
@@ -86,4 +146,6 @@ Manager; release pipeline produces a scanned image and install manifests.
 - Optional PCF adapter behind the existing `MQAdmin` port for environments
   without `mqweb`.
 - Metrics/dashboards and richer status reporting.
-- Documentation site and published install manifests.
+- Documentation site and OCI Helm chart registry (release today attaches `.tgz`
+  to GitHub Releases; GHCR chart push is optional follow-up).
+- Commit generated `docs/schemas/mqweb-swagger.json` per target MQ version.
