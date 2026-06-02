@@ -114,8 +114,10 @@ The operator ships a tightly scoped `ClusterRole` generated from
   `/finalizers` subresources.
 - `get`/`list`/`watch` on the referenced **`Secrets`** (credentials, CA bundles)
   — and nothing broader on core resources.
-- `create`/`patch` on `Events`; reconcilers emit **Warning** Events on terminal
-  errors (`recordTerminalEvent`) in addition to status conditions.
+- `create`/`patch` on `Events`; reconcilers emit Kubernetes Events on **condition
+  transitions** (Normal) and **terminal failures** (Warning) in addition to status
+  conditions. Transient MQ/network errors update status only — no Events — to
+  avoid noise during retries. See [Event emission](#event-emission) below.
 - `Lease` access in the operator namespace for leader election.
 
 No wildcard verbs, no cluster-admin. RBAC drift is caught by `task verify`.
@@ -132,6 +134,25 @@ No wildcard verbs, no cluster-admin. RBAC drift is caught by `task verify`.
 - TLS is verified by default; `insecureSkipVerify` is opt-in and intended only
   for local dev. The mqweb CSRF header (`ibm-mq-rest-csrf-token`) is sent on all
   mutating calls (see [IBM_MQ_REST_API.md](IBM_MQ_REST_API.md)).
+
+### Event emission
+
+Events supplement status conditions for `kubectl describe` and namespace-level
+auditing. They are emitted **on transitions only** (not every reconcile pass).
+
+| Transition | Type | Reason | When |
+|------------|------|--------|------|
+| Connection becomes Ready | Normal | `Available` | QMC `Ready` → True |
+| MQ object synced | Normal | `Available` | `Synced` → True |
+| Blocked on connection | Normal | `Progressing` | `Synced` → False with `Progressing` |
+| Deletion started | Normal | `Deleting` | Enter `Synced` Deleting |
+| MQ object removed | Normal | `Deleted` | After successful MQ delete |
+| Terminal/config/MQ failure | Warning | Classified (`MQSCError`, `ConnectionNotFound`, …) | Non-transient reconcile error |
+| Transient MQ/network failure | *(none)* | — | Status updated; no Event |
+
+Warning reasons are derived from typed port errors (`TerminalError.Reason`,
+Kubernetes `NotFound` on connections/secrets, etc.). Implementation lives in
+[`internal/controller/events.go`](../internal/controller/events.go).
 
 ### Error handling & requeue strategy
 

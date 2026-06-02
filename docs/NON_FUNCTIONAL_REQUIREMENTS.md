@@ -37,7 +37,7 @@ Each requirement has an ID (`NFR-x`), a priority (**MUST** / **SHOULD** /
 | ID | Req | Priority | Verification |
 |----|-----|----------|--------------|
 | OBS-1 | Every managed resource exposes machine-readable status `conditions` (e.g. `Ready`, `Synced`) plus `observedGeneration`. | MUST | envtest assertions |
-| OBS-2 | Reconcile outcomes are surfaced as Kubernetes `Events` with actionable reasons/messages. | SHOULD | envtest / unit (`events_test.go`) |
+| OBS-2 | Lifecycle transitions and terminal failures surface as Kubernetes `Events` with actionable reasons/messages; transient retries do not emit Events. | SHOULD | envtest / unit (`events_test.go`, `queue_reconciler_test.go`) |
 | OBS-3 | Prometheus metrics are exposed (controller-runtime defaults + custom MQ counters/latency histograms) on a protected endpoint. | MUST | `/metrics` scrape test |
 | OBS-4 | Structured (JSON-capable) logging with per-object context and configurable level. | MUST | Manual / unit |
 | OBS-5 | A `ServiceMonitor` (and optionally a starter Grafana dashboard) ships for the local monitoring stack. | MAY | Local stack |

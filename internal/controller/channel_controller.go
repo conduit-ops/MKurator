@@ -60,7 +60,7 @@ func (r *ChannelReconciler) reconcile(ctx context.Context, req ctrl.Request) (ct
 		return setSyncedError(ctx, r.Status(), r.Recorder, channel, channel.Generation, err)
 	}
 
-	waitResult, waitDone, waitErr := waitForConnectionReady(ctx, r.Status(), channel, conn, channel.Generation)
+	waitResult, waitDone, waitErr := waitForConnectionReady(ctx, r.Status(), r.Recorder, channel, conn, channel.Generation)
 	if waitDone {
 		return waitResult, waitErr
 	}
@@ -94,7 +94,7 @@ func (r *ChannelReconciler) reconcile(ctx context.Context, req ctrl.Request) (ct
 		return setSyncedError(ctx, r.Status(), r.Recorder, channel, channel.Generation, err)
 	}
 
-	if err := patchSyncedAvailable(ctx, r.Status(), channel, channel.Generation, "Channel matches spec"); err != nil {
+	if err := patchSyncedAvailable(ctx, r.Status(), r.Recorder, channel, channel.Generation, "Channel matches spec"); err != nil {
 		return ctrl.Result{}, fmt.Errorf("update status: %w", err)
 	}
 	logger.Info("Channel synced", "channel", channel.Spec.ChannelName, "type", spec.Type)
@@ -123,7 +123,7 @@ func (r *ChannelReconciler) handleDeletion(
 	channel *messagingv1alpha1.Channel,
 	admin mqadmin.Admin,
 ) (ctrl.Result, error) {
-	if err := patchSyncedDeleting(ctx, r.Status(), channel, channel.Generation,
+	if err := patchSyncedDeleting(ctx, r.Status(), r.Recorder, channel, channel.Generation,
 		"Deleting channel from IBM MQ"); err != nil {
 		return ctrl.Result{}, err
 	}
@@ -132,6 +132,8 @@ func (r *ChannelReconciler) handleDeletion(
 	if err := admin.DeleteChannel(ctx, spec); err != nil {
 		return setSyncedError(ctx, r.Status(), r.Recorder, channel, channel.Generation, err)
 	}
+
+	recordNormalEvent(r.Recorder, channel, EventReasonDeleted, "Channel removed from IBM MQ")
 
 	controllerutil.RemoveFinalizer(channel, messagingv1alpha1.ChannelFinalizer)
 	if err := r.Update(ctx, channel); err != nil {

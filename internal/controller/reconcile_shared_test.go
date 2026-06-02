@@ -3,9 +3,11 @@ package controller
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -143,7 +145,8 @@ func TestWaitForConnectionReady_Requeues(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "orders", Namespace: ns, Generation: 1},
 	}
 	cl := fake.NewClientBuilder().WithScheme(s).WithStatusSubresource(q).WithObjects(q).Build()
-	result, wait, err := waitForConnectionReady(ctx, cl.Status(), q, conn, 1)
+	recorder := record.NewFakeRecorder(1)
+	result, wait, err := waitForConnectionReady(ctx, cl.Status(), recorder, q, conn, 1)
 	if err != nil || !wait || result.RequeueAfter != 15*time.Second {
 		t.Fatalf("result=%+v wait=%v err=%v", result, wait, err)
 	}
@@ -153,6 +156,14 @@ func TestWaitForConnectionReady_Requeues(t *testing.T) {
 	}
 	if conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionSynced) != metav1.ConditionFalse {
 		t.Fatalf("conditions = %v", updated.Status.Conditions)
+	}
+	select {
+	case ev := <-recorder.Events:
+		if !strings.Contains(ev, corev1.EventTypeNormal) || !strings.Contains(ev, messagingv1alpha1.ReasonProgressing) {
+			t.Fatalf("event = %q", ev)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("expected progressing event")
 	}
 }
 
@@ -165,7 +176,8 @@ func TestPatchSyncedAvailable_Queue(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "orders", Namespace: ns, Generation: 2},
 	}
 	cl := fake.NewClientBuilder().WithScheme(s).WithStatusSubresource(q).WithObjects(q).Build()
-	if err := patchSyncedAvailable(ctx, cl.Status(), q, 2, "synced"); err != nil {
+	recorder := record.NewFakeRecorder(1)
+	if err := patchSyncedAvailable(ctx, cl.Status(), recorder, q, 2, "synced"); err != nil {
 		t.Fatal(err)
 	}
 	updated := &messagingv1alpha1.Queue{}
@@ -174,6 +186,14 @@ func TestPatchSyncedAvailable_Queue(t *testing.T) {
 	}
 	if updated.Status.ObservedGeneration != 2 {
 		t.Fatalf("ObservedGeneration = %d", updated.Status.ObservedGeneration)
+	}
+	select {
+	case ev := <-recorder.Events:
+		if !strings.Contains(ev, corev1.EventTypeNormal) || !strings.Contains(ev, messagingv1alpha1.ReasonAvailable) {
+			t.Fatalf("event = %q", ev)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("expected available event")
 	}
 }
 
@@ -186,7 +206,7 @@ func TestPatchSyncedProgressing_Channel(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "app", Namespace: ns, Generation: 1},
 	}
 	cl := fake.NewClientBuilder().WithScheme(s).WithStatusSubresource(ch).WithObjects(ch).Build()
-	if err := patchSyncedProgressing(ctx, cl.Status(), ch, 1, "waiting"); err != nil {
+	if err := patchSyncedProgressing(ctx, cl.Status(), nil, ch, 1, "waiting"); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -200,7 +220,7 @@ func TestPatchSyncedDeleting_Topic(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "retail", Namespace: ns, Generation: 1},
 	}
 	cl := fake.NewClientBuilder().WithScheme(s).WithStatusSubresource(topic).WithObjects(topic).Build()
-	if err := patchSyncedDeleting(ctx, cl.Status(), topic, 1, "deleting"); err != nil {
+	if err := patchSyncedDeleting(ctx, cl.Status(), nil, topic, 1, "deleting"); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -215,12 +235,15 @@ func TestSetSyncedError_TerminalQueue(t *testing.T) {
 	}
 	cl := fake.NewClientBuilder().WithScheme(s).WithStatusSubresource(q).WithObjects(q).Build()
 	recorder := record.NewFakeRecorder(1)
-	result, err := setSyncedError(ctx, cl.Status(), recorder, q, 1, &mqadmin.TerminalError{Message: "bad"})
+	result, err := setSyncedError(ctx, cl.Status(), recorder, q, 1, &mqadmin.TerminalError{Reason: "MQSCError", Message: "bad"})
 	if err != nil || result != (ctrl.Result{}) {
 		t.Fatalf("result=%+v err=%v", result, err)
 	}
 	select {
-	case <-recorder.Events:
+	case ev := <-recorder.Events:
+		if !strings.Contains(ev, corev1.EventTypeWarning) || !strings.Contains(ev, "MQSCError") {
+			t.Fatalf("event = %q", ev)
+		}
 	case <-time.After(time.Second):
 		t.Fatal("expected warning event")
 	}

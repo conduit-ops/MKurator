@@ -75,6 +75,7 @@ func (r *QueueManagerConnectionReconciler) reconcile(ctx context.Context, req ct
 	}
 
 	gen := conn.Generation
+	readyMsg := "mqweb connection is healthy"
 	setCondition(&conn.Status.Conditions, messagingv1alpha1.ConditionReady,
 		metav1.ConditionFalse, messagingv1alpha1.ReasonProgressing, "Testing mqweb connectivity", gen)
 	if err := r.Status().Update(ctx, conn); err != nil {
@@ -89,8 +90,12 @@ func (r *QueueManagerConnectionReconciler) reconcile(ctx context.Context, req ct
 		return r.fail(ctx, conn, gen, err)
 	}
 
+	if conditionChanged(conn.Status.Conditions, messagingv1alpha1.ConditionReady,
+		metav1.ConditionTrue, messagingv1alpha1.ReasonAvailable) {
+		recordNormalEvent(r.Recorder, conn, messagingv1alpha1.ReasonAvailable, readyMsg)
+	}
 	setCondition(&conn.Status.Conditions, messagingv1alpha1.ConditionReady,
-		metav1.ConditionTrue, messagingv1alpha1.ReasonAvailable, "mqweb connection is healthy", gen)
+		metav1.ConditionTrue, messagingv1alpha1.ReasonAvailable, readyMsg, gen)
 	conn.Status.ObservedGeneration = gen
 	if err := r.Status().Update(ctx, conn); err != nil {
 		return ctrl.Result{}, fmt.Errorf("update status: %w", err)
@@ -105,7 +110,7 @@ func (r *QueueManagerConnectionReconciler) fail(
 	gen int64,
 	err error,
 ) (ctrl.Result, error) {
-	recordTerminalEvent(r.Recorder, conn, err)
+	recordReconcileWarning(r.Recorder, conn, err)
 
 	reason := messagingv1alpha1.ReasonError
 	msg := err.Error()
