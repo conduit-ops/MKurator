@@ -45,6 +45,12 @@ bash hack/helm-sync-crds.sh
 samples_scratch="${scratch}/charts/kurator/samples/resources"
 mkdir -p "$(dirname "${samples_scratch}")"
 DEST_DIR="${samples_scratch}" bash hack/sync-samples.sh
+# Chart-only files not produced by sync-samples.sh; copy so verify compares like-for-like.
+for chart_only in mq-credentials-secret.yaml README.md; do
+  if [[ -f "charts/kurator/samples/resources/${chart_only}" ]]; then
+    cp -a "charts/kurator/samples/resources/${chart_only}" "${samples_scratch}/"
+  fi
+done
 
 echo "verify: comparing generated artifacts..."
 
