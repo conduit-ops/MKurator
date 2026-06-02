@@ -42,6 +42,10 @@ fi
 
 bash hack/helm-sync-crds.sh
 
+samples_scratch="${scratch}/charts/kurator/samples/resources"
+mkdir -p "$(dirname "${samples_scratch}")"
+DEST_DIR="${samples_scratch}" bash hack/sync-samples.sh
+
 echo "verify: comparing generated artifacts..."
 
 for path in config/crd/bases config/rbac charts/kurator/crds; do
@@ -66,6 +70,11 @@ if [[ -d "$scratch/test/mocks" ]] || [[ -d test/mocks ]]; then
     echo "verify: drift in test/mocks — run 'task generate'" >&2
     exit 1
   fi
+fi
+
+if ! diff -ru "${samples_scratch}" charts/kurator/samples/resources; then
+  echo "verify: drift in charts/kurator/samples/resources — run 'task samples:sync'" >&2
+  exit 1
 fi
 
 echo "verify: ok"

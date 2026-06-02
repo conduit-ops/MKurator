@@ -6,6 +6,23 @@ production.
 
 Full install and usage guide: [docs/INSTALL_AND_USE.md](../../docs/INSTALL_AND_USE.md).
 
+## Canonical source and Helm copies
+
+**`config/samples/`** is the Kubebuilder canonical tree (annotated filenames, optional
+`metadata.namespace` on each file). **`charts/kurator/samples/resources/`** holds
+Helm-oriented copies: shorter filenames, no per-object namespace (the chart
+`kustomization.yaml` sets `namespace: kurator-system`).
+
+After editing samples here, sync the chart tree:
+
+```sh
+task samples:sync
+```
+
+`task verify` fails if the chart copies drift. The credentials Secret
+(`mq-credentials-secret.yaml`) lives only under the chart; it is not generated from
+this directory.
+
 ## Apply order
 
 ```sh
