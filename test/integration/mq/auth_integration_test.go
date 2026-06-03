@@ -5,6 +5,7 @@ package mq
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sort"
 	"strings"
 	"testing"
@@ -176,6 +177,132 @@ func TestIntegration_GetAuthority_NotFound(t *testing.T) {
 	_, err = c.GetAuthority(ctx, mqadmin.AuthoritySpec{
 		Profile:    queueNameForTest(t.Name() + ".missing"),
 		ObjectType: mqadmin.AuthorityObjectTypeQueue,
+		Principal:  "nobody",
+	})
+	if err == nil || !errors.Is(err, mqadmin.ErrNotFound) {
+		t.Fatalf("expected ErrNotFound, got %v", err)
+	}
+}
+
+func TestIntegration_GetAuthority_Channel(t *testing.T) {
+	requireIntegration(t)
+	ctx := testContext(t)
+	profile := channelNameForTest(t.Name())
+
+	c, err := newIntegrationClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	chSpec := mqadmin.ChannelSpec{
+		Name: profile,
+		Type: mqadmin.ChannelTypeSvrconn,
+		Attributes: map[string]string{
+			"trptype": "tcp",
+		},
+	}
+	authSpec := mqadmin.AuthoritySpec{
+		Profile:     profile,
+		ObjectType:  mqadmin.AuthorityObjectTypeChannel,
+		Principal:   "app",
+		Authorities: []string{"CHG", "DSP"},
+	}
+	t.Cleanup(func() {
+		_ = c.DeleteAuthority(context.Background(), authSpec)
+		_ = c.DeleteChannel(context.Background(), chSpec)
+	})
+
+	if err := c.DefineChannel(ctx, chSpec); err != nil {
+		t.Fatalf("DefineChannel: %v", err)
+	}
+	if err := c.SetAuthority(ctx, authSpec); err != nil {
+		t.Fatalf("SetAuthority: %v", err)
+	}
+
+	state, err := c.GetAuthority(ctx, authSpec)
+	if err != nil {
+		t.Fatalf("GetAuthority: %v", err)
+	}
+	if !authoritySetEqual(state.Authorities, []string{"CHG", "DSP"}) {
+		t.Fatalf("authorities = %v", state.Authorities)
+	}
+}
+
+func TestIntegration_GetAuthority_Topic(t *testing.T) {
+	requireIntegration(t)
+	ctx := testContext(t)
+	profile := topicNameForTest(t.Name())
+
+	c, err := newIntegrationClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	topstr := fmt.Sprintf("kurator/it/%d", testNameHash(t.Name())%100000)
+	topicSpec := mqadmin.TopicSpec{
+		Name: profile,
+		Attributes: map[string]string{
+			"topstr": topstr,
+		},
+	}
+	authSpec := mqadmin.AuthoritySpec{
+		Profile:     profile,
+		ObjectType:  mqadmin.AuthorityObjectTypeTopic,
+		Principal:   "app",
+		Authorities: []string{"SUB", "DSP"},
+	}
+	t.Cleanup(func() {
+		_ = c.DeleteAuthority(context.Background(), authSpec)
+		_ = c.DeleteTopic(context.Background(), profile)
+	})
+
+	if err := c.DefineTopic(ctx, topicSpec); err != nil {
+		t.Fatalf("DefineTopic: %v", err)
+	}
+	if err := c.SetAuthority(ctx, authSpec); err != nil {
+		t.Fatalf("SetAuthority: %v", err)
+	}
+
+	state, err := c.GetAuthority(ctx, authSpec)
+	if err != nil {
+		t.Fatalf("GetAuthority: %v", err)
+	}
+	if !authoritySetEqual(state.Authorities, []string{"SUB", "DSP"}) {
+		t.Fatalf("authorities = %v", state.Authorities)
+	}
+}
+
+func TestIntegration_GetAuthority_Channel_NotFound(t *testing.T) {
+	requireIntegration(t)
+	ctx := testContext(t)
+
+	c, err := newIntegrationClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = c.GetAuthority(ctx, mqadmin.AuthoritySpec{
+		Profile:    channelNameForTest(t.Name() + ".missing"),
+		ObjectType: mqadmin.AuthorityObjectTypeChannel,
+		Principal:  "nobody",
+	})
+	if err == nil || !errors.Is(err, mqadmin.ErrNotFound) {
+		t.Fatalf("expected ErrNotFound, got %v", err)
+	}
+}
+
+func TestIntegration_GetAuthority_Topic_NotFound(t *testing.T) {
+	requireIntegration(t)
+	ctx := testContext(t)
+
+	c, err := newIntegrationClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = c.GetAuthority(ctx, mqadmin.AuthoritySpec{
+		Profile:    topicNameForTest(t.Name() + ".missing"),
+		ObjectType: mqadmin.AuthorityObjectTypeTopic,
 		Principal:  "nobody",
 	})
 	if err == nil || !errors.Is(err, mqadmin.ErrNotFound) {
