@@ -17,6 +17,7 @@ docs/REFERENCES.md
 # Code coverage profiles and other test artifacts
 *.out
 coverage.*
+coverage-summary.txt
 *.coverprofile
 profile.cov
 
