@@ -232,6 +232,93 @@ var _ = Describe("Validating admission webhooks", func() {
 		Expect(err.Error()).To(ContainSubstring("ORDERS.APP"))
 	})
 
+	It("denies ChannelAuthRule BLOCKADDR without address", func() {
+		ctx := context.Background()
+		Expect(webhookK8sClient.Create(ctx, &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: ns},
+		})).To(Succeed())
+		conn := sampleWebhookConnection(ns, "qm1")
+		Expect(webhookK8sClient.Create(ctx, conn)).To(Succeed())
+
+		ch := &messagingv1alpha1.Channel{
+			ObjectMeta: metav1.ObjectMeta{Name: "orders-app", Namespace: ns},
+			Spec: messagingv1alpha1.ChannelSpec{
+				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+				ChannelName:   "ORDERS.APP",
+			},
+		}
+		Expect(webhookK8sClient.Create(ctx, ch)).To(Succeed())
+
+		rule := &messagingv1alpha1.ChannelAuthRule{
+			ObjectMeta: metav1.ObjectMeta{Name: "bad-blockaddr", Namespace: ns},
+			Spec: messagingv1alpha1.ChannelAuthRuleSpec{
+				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+				ChannelName:   "ORDERS.APP",
+				RuleType:      messagingv1alpha1.ChannelAuthRuleTypeBlockAddr,
+			},
+		}
+		err := webhookK8sClient.Create(ctx, rule)
+		Expect(err).To(HaveOccurred())
+		Expect(apierrors.IsInvalid(err)).To(BeTrue())
+		Expect(err.Error()).To(ContainSubstring("spec.address"))
+	})
+
+	It("allows ChannelAuthRule USERMAP when Channel exists (deferred MQSC fields)", func() {
+		ctx := context.Background()
+		Expect(webhookK8sClient.Create(ctx, &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: ns},
+		})).To(Succeed())
+		conn := sampleWebhookConnection(ns, "qm1")
+		Expect(webhookK8sClient.Create(ctx, conn)).To(Succeed())
+
+		ch := &messagingv1alpha1.Channel{
+			ObjectMeta: metav1.ObjectMeta{Name: "orders-app", Namespace: ns},
+			Spec: messagingv1alpha1.ChannelSpec{
+				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+				ChannelName:   "ORDERS.APP",
+			},
+		}
+		Expect(webhookK8sClient.Create(ctx, ch)).To(Succeed())
+
+		rule := &messagingv1alpha1.ChannelAuthRule{
+			ObjectMeta: metav1.ObjectMeta{Name: "car-usermap", Namespace: ns},
+			Spec: messagingv1alpha1.ChannelAuthRuleSpec{
+				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+				ChannelName:   "ORDERS.APP",
+				RuleType:      messagingv1alpha1.ChannelAuthRuleTypeUserMap,
+			},
+		}
+		Expect(webhookK8sClient.Create(ctx, rule)).To(Succeed())
+	})
+
+	It("allows ChannelAuthRule SSLPEERMAP when Channel exists (deferred MQSC fields)", func() {
+		ctx := context.Background()
+		Expect(webhookK8sClient.Create(ctx, &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: ns},
+		})).To(Succeed())
+		conn := sampleWebhookConnection(ns, "qm1")
+		Expect(webhookK8sClient.Create(ctx, conn)).To(Succeed())
+
+		ch := &messagingv1alpha1.Channel{
+			ObjectMeta: metav1.ObjectMeta{Name: "orders-app", Namespace: ns},
+			Spec: messagingv1alpha1.ChannelSpec{
+				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+				ChannelName:   "ORDERS.APP",
+			},
+		}
+		Expect(webhookK8sClient.Create(ctx, ch)).To(Succeed())
+
+		rule := &messagingv1alpha1.ChannelAuthRule{
+			ObjectMeta: metav1.ObjectMeta{Name: "car-sslpeermap", Namespace: ns},
+			Spec: messagingv1alpha1.ChannelAuthRuleSpec{
+				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+				ChannelName:   "ORDERS.APP",
+				RuleType:      messagingv1alpha1.ChannelAuthRuleTypeSSLPeerMap,
+			},
+		}
+		Expect(webhookK8sClient.Create(ctx, rule)).To(Succeed())
+	})
+
 	It("allows ChannelAuthRule when Channel and connection exist", func() {
 		ctx := context.Background()
 		Expect(webhookK8sClient.Create(ctx, &corev1.Secret{
