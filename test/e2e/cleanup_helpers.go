@@ -4,6 +4,7 @@
 package e2e
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -74,9 +75,8 @@ func deleteAllKuratorCRsNoWait(namespaces []string) {
 	By("deleting Kurator custom resources in e2e namespaces (no wait)")
 	for _, ns := range namespaces {
 		for _, res := range kuratorMQResources {
-			cmd := exec.Command("kubectl", "delete", res, "--all", "-n", ns,
+			_, _ = runKubectl("delete", res, "--all", "-n", ns,
 				"--ignore-not-found", "--wait=false")
-			_, _ = utils.Run(cmd)
 		}
 	}
 }
@@ -86,9 +86,8 @@ func stripRemainingFinalizers(namespaces []string) {
 	const patch = `{"metadata":{"finalizers":null}}`
 	for _, ns := range namespaces {
 		for _, res := range kuratorMQResources {
-			cmd := exec.Command("kubectl", "get", res, "-n", ns,
+			out, err := runKubectl("get", res, "-n", ns,
 				"-o", "jsonpath={range .items[*]}{.metadata.name}{\"\\n\"}{end}")
-			out, err := utils.Run(cmd)
 			if err != nil {
 				continue
 			}
@@ -96,9 +95,7 @@ func stripRemainingFinalizers(namespaces []string) {
 				if name == "" {
 					continue
 				}
-				patchCmd := exec.Command("kubectl", "patch", res, name, "-n", ns,
-					"--type=merge", "-p", patch)
-				_, _ = utils.Run(patchCmd)
+				_, _ = runKubectl("patch", res, name, "-n", ns, "--type=merge", "-p", patch)
 			}
 		}
 	}
@@ -107,14 +104,16 @@ func stripRemainingFinalizers(namespaces []string) {
 func deleteE2ENamespacesNoWait(namespaces []string) {
 	By("deleting e2e namespaces (no wait)")
 	for _, ns := range namespaces {
-		cmd := exec.Command("kubectl", "delete", "ns", ns, "--ignore-not-found", "--wait=false")
-		_, _ = utils.Run(cmd)
+		_, _ = runKubectl("delete", "ns", ns, "--ignore-not-found", "--wait=false")
 	}
 }
 
 func undeployKustomizeOperatorNoWait() {
 	By("removing controller-manager manifests (no wait)")
-	cmd := exec.Command("kubectl", "delete", "--ignore-not-found", "-k", "config/default", "--wait=false")
+	ctx, cancel := context.WithTimeout(context.Background(), kubectlCommandTimeout)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, "kubectl", "--request-timeout="+kubectlRequestTimeout,
+		"delete", "--ignore-not-found", "-k", "config/default", "--wait=false")
 	cmd.Env = taskEnv()
 	_, _ = utils.Run(cmd)
 }
@@ -132,7 +131,10 @@ func undeployKuratorCRDsNoWait() {
 		return
 	}
 	crdDir := filepath.Join(projectDir, "config", "crd", "bases")
-	cmd := exec.Command("kubectl", "delete", "--ignore-not-found", "-f", crdDir, "--wait=false")
+	ctx, cancel := context.WithTimeout(context.Background(), kubectlCommandTimeout)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, "kubectl", "--request-timeout="+kubectlRequestTimeout,
+		"delete", "--ignore-not-found", "-f", crdDir, "--wait=false")
 	cmd.Env = taskEnv()
 	_, _ = utils.Run(cmd)
 }
