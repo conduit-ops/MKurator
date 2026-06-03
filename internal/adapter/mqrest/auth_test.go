@@ -27,6 +27,23 @@ func TestBuildSetChannelAuthMQSC(t *testing.T) {
 	}
 }
 
+func TestBuildSetChannelAuthMQSCBlockUser(t *testing.T) {
+	cmd, err := buildSetChannelAuthMQSC(mqadmin.ChannelAuthSpec{
+		ChannelName: "ORDERS.APP",
+		RuleType:    mqadmin.ChannelAuthRuleTypeBlockUser,
+		UserList:    "nobody",
+		Description: "deny nobody",
+	}, "REPLACE")
+	if err != nil {
+		t.Fatalf("buildSetChannelAuthMQSC: %v", err)
+	}
+	want := "SET CHLAUTH('ORDERS.APP') TYPE(BLOCKUSER) USERLIST('nobody') " +
+		"DESCR('deny nobody') ACTION(REPLACE)"
+	if cmd != want {
+		t.Fatalf("got %q, want %q", cmd, want)
+	}
+}
+
 func TestBuildSetChannelAuthMQSCRemove(t *testing.T) {
 	cmd, err := buildSetChannelAuthMQSC(mqadmin.ChannelAuthSpec{
 		ChannelName: "DEV.APP.SVRCONN.0TLS",
