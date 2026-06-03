@@ -137,6 +137,7 @@ func channelAuthStateFromAttributes(
 		ChannelName: spec.ChannelName,
 		RuleType:    spec.RuleType,
 		Address:     attrs["address"],
+		UserList:    attrs["userlist"],
 		UserSource:  attrs["usersrc"],
 		CheckClient: attrs["chckclnt"],
 		Description: attrs["descr"],
@@ -240,6 +241,9 @@ func buildSetChannelAuthMQSC(spec mqadmin.ChannelAuthSpec, action string) (strin
 	if action == "REMOVE" {
 		parts = append(parts, "ACTION(REMOVE)")
 		return strings.Join(parts, " "), nil
+	}
+	if spec.UserList != "" {
+		parts = append(parts, fmt.Sprintf("USERLIST('%s')", mqscQuote(spec.UserList)))
 	}
 	if spec.UserSource != "" {
 		parts = append(parts, fmt.Sprintf("USERSRC(%s)", spec.UserSource))

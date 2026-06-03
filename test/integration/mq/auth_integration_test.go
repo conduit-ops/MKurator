@@ -59,6 +59,51 @@ func TestIntegration_GetChannelAuth(t *testing.T) {
 	}
 }
 
+func TestIntegration_GetChannelAuth_BlockUser(t *testing.T) {
+	requireIntegration(t)
+	ctx := testContext(t)
+	channel := channelNameForTest(t.Name())
+
+	c, err := newIntegrationClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	chSpec := mqadmin.ChannelSpec{
+		Name: channel,
+		Type: mqadmin.ChannelTypeSvrconn,
+		Attributes: map[string]string{
+			"trptype": "tcp",
+		},
+	}
+	authSpec := mqadmin.ChannelAuthSpec{
+		ChannelName: channel,
+		RuleType:    mqadmin.ChannelAuthRuleTypeBlockUser,
+		UserList:    "nobody",
+		Description: "integration blockuser path",
+	}
+	t.Cleanup(func() {
+		_ = c.DeleteChannelAuth(context.Background(), authSpec)
+		_ = c.DeleteChannel(context.Background(), chSpec)
+	})
+
+	if err := c.DefineChannel(ctx, chSpec); err != nil {
+		t.Fatalf("DefineChannel: %v", err)
+	}
+
+	if err := c.SetChannelAuth(ctx, authSpec); err != nil {
+		t.Fatalf("SetChannelAuth: %v", err)
+	}
+
+	state, err := c.GetChannelAuth(ctx, authSpec)
+	if err != nil {
+		t.Fatalf("GetChannelAuth: %v", err)
+	}
+	if !strings.EqualFold(state.UserList, "nobody") {
+		t.Fatalf("userList = %q", state.UserList)
+	}
+}
+
 func TestIntegration_GetChannelAuth_NotFound(t *testing.T) {
 	requireIntegration(t)
 	ctx := testContext(t)
