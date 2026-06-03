@@ -167,6 +167,38 @@ caching is not configured (integration/e2e pull IBM MQ images on each run).
 Further supply-chain hardening (OpenSSF Scorecard, SLSA Level 3 builders) remains
 optional; see [ADR-0005](adr/0005-keep-tooling-lean.md).
 
+### Renovate (dependency freshness)
+
+Weekly dependency update PRs are driven by
+[`.github/workflows/renovate.yaml`](../.github/workflows/renovate.yaml) using
+[`renovatebot/github-action`](https://github.com/renovatebot/github-action).
+
+Configuration is split on purpose:
+
+| File | Role |
+|------|------|
+| [`.github/renovate-config.json`](../.github/renovate-config.json) | **Global** (self-hosted) config passed to the action: target repo via `RENOVATE_REPOSITORIES`, onboarding disabled |
+| [`renovate.json`](../renovate.json) | **Repository** config: schedules, grouping, custom managers, package rules |
+
+**Maintainer setup:** add a repository secret `RENOVATE_TOKEN` — a classic
+[Personal Access Token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens)
+with:
+
+- **Private repo:** `repo` + `workflow` scopes
+- **Public repo:** `public_repo` + `workflow` scopes
+
+The workflow falls back to `github.token` when `RENOVATE_TOKEN` is unset, but
+that token is **not sufficient** for the `github-actions` manager: updating
+pinned action SHAs in workflow files requires the `workflow` scope, which the
+default `GITHUB_TOKEN` does not grant to third-party actions. Without
+`RENOVATE_TOKEN`, Go/module/Docker bumps may still open PRs, but GitHub Actions
+pin updates will fail or be skipped.
+
+The job sets `RENOVATE_REPOSITORIES: ${{ github.repository }}` so Renovate knows
+which repo to scan (global-only; do not put `autodiscover` in `renovate.json`).
+Job permissions include `workflows: write` for action pin updates.
+`LOG_LEVEL=debug` is enabled only on manual `workflow_dispatch` runs.
+
 ## Branch protection
 
 The default branch requires CI jobs to pass before merge. Exact required checks
