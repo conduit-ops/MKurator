@@ -23,7 +23,8 @@ env:
 
 concurrency:
   group: integration-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Let long main runs finish so results stay visible; cancel superseded PR runs only.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   integration:

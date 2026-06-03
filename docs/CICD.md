@@ -55,6 +55,19 @@ what each job runs, not execution order.
 changes only markdown (`**.md`), `docs/**`, or `charts/**/README.md`. The main
 `ci.yaml` workflow runs on every PR and `main` push (no path filters).
 
+### Concurrency
+
+`integration.yaml` and `e2e.yaml` each define a workflow-scoped concurrency
+group (`integration-…` / `e2e-…` plus `github.ref`). They do **not** share a
+group with `ci.yaml` or each other.
+
+| Workflow | `cancel-in-progress` | Effect |
+|----------|----------------------|--------|
+| `e2e`, `integration` on **PR** | `true` | A new push cancels the in-flight run for that PR ref (saves runner time). |
+| `e2e`, `integration` on **`main`** | `false` | Rapid pushes do not cancel a run already on the cluster; newer runs **queue** until the group is free, so each finished run keeps a visible result. |
+
+`ci.yaml` has no concurrency block (jobs always run in parallel per trigger).
+
 ## Jobs
 
 ### `gitleaks`
