@@ -1,0 +1,7 @@
+{
+  "push_allowed": false,
+  "pipeline_check_in_progress": true,
+  "lock_holder": null,
+  "last_updated": "2026-06-03T02:31:35Z",
+  "notes": "Coordinator bootstrap push pending. main@988623c merged origin/renovate/major-github-actions (Renovate major-github-actions) — do not merge further Renovate without updating notes. CI@26859985570: queued (renovate merge); CI@26859908353: in_progress (coverage tests); CI@26860109930: queued (fix Helm e2e namespace). Integration@26859985574: failure (renovate merge); Integration@26859908357: success; Integration@26860109924: queued. E2E@26859985569: cancelled; E2E@26859908323: cancelled; E2E@26860109928: queued. Release: no recent run on latest SHAs. Stale exclusive-test.lock on disk (PID 2290843 not running); lock_holder=null."
+}
