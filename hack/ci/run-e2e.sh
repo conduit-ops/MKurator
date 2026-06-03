@@ -25,7 +25,7 @@ echo ""
 
 export CGO_ENABLED="${CGO_ENABLED:-1}"
 
-# -ginkgo.v / -ginkgo.progress: spec and long-running step visibility
+# -ginkgo.v + -ginkgo.show-node-events: spec output and node events when a spec is stuck
 # -count=1: do not skip the suite via cached pass
 go test -tags=e2e ./test/e2e/... \
   -race \
@@ -33,5 +33,4 @@ go test -tags=e2e ./test/e2e/... \
   -count=1 \
   -timeout=90m \
   -ginkgo.v \
-  -ginkgo.progress \
   -ginkgo.show-node-events
