@@ -51,6 +51,9 @@ bin/
 dist/
 .task/
 
+# Local Renovate working clone (hack/renovate-docker.sh)
+.renovate/
+
 # Editor/IDE
 # .idea/
 # .vscode/

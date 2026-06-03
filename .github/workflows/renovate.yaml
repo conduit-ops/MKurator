@@ -18,6 +18,8 @@ jobs:
       pull-requests: write
     env:
       RENOVATE_REPOSITORIES: ${{ github.repository }}
+      # Manual runs ignore renovate.json schedule so PRs open immediately.
+      RENOVATE_FORCE: ${{ github.event_name == 'workflow_dispatch' && '{"schedule":null}' || '' }}
       LOG_LEVEL: ${{ github.event_name == 'workflow_dispatch' && 'debug' || '' }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
