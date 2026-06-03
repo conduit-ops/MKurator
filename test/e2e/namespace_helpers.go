@@ -4,6 +4,7 @@
 package e2e
 
 import (
+	"context"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -58,27 +59,27 @@ func ensureMQE2ENamespaces() {
 
 func ensureE2ENamespace(name string) {
 	By("creating namespace " + name)
-	cmd := exec.Command("kubectl", "create", "ns", name, "--dry-run=client", "-o", "yaml")
-	manifest, err := utils.Run(cmd)
+	manifest, err := runKubectl("create", "ns", name, "--dry-run=client", "-o", "yaml")
 	Expect(err).NotTo(HaveOccurred(), "Failed to render namespace manifest for %s", name)
 	Expect(kubectlApply(manifest)).To(Succeed())
 
-	cmd = exec.Command("kubectl", "label", "--overwrite", "ns", name,
+	_, err = runKubectl("label", "--overwrite", "ns", name,
 		"pod-security.kubernetes.io/enforce=restricted")
-	_, err = utils.Run(cmd)
 	Expect(err).NotTo(HaveOccurred(), "Failed to label namespace %s with restricted policy", name)
 }
 
 func ensureMQCredentialsSecret(ns string) {
-	cmd := exec.Command("kubectl", "create", "secret", "generic", "mq-credentials",
+	manifest, err := runKubectl("create", "secret", "generic", "mq-credentials",
 		"-n", ns,
 		"--from-literal=username=admin",
 		fmt.Sprintf("--from-literal=mqAdminPassword=%s", envOr("KURATOR_E2E_MQ_PASSWORD", "passw0rd")),
 		"--dry-run=client", "-o", "yaml",
 	)
-	manifest, err := utils.Run(cmd)
 	Expect(err).NotTo(HaveOccurred())
-	cmd = exec.Command("kubectl", "apply", "--server-side", "--force-conflicts", "-f", "-")
+	ctx, cancel := context.WithTimeout(context.Background(), kubectlCommandTimeout)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, "kubectl", "--request-timeout="+kubectlRequestTimeout,
+		"apply", "--server-side", "--force-conflicts", "-f", "-")
 	cmd.Stdin = strings.NewReader(manifest)
 	_, err = utils.Run(cmd)
 	Expect(err).NotTo(HaveOccurred(), "Failed to apply mq-credentials in %s", ns)

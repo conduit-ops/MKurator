@@ -5,7 +5,6 @@ package e2e
 
 import (
 	"fmt"
-	"os/exec"
 	"strings"
 	"time"
 
@@ -13,7 +12,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	messagingv1alpha1 "github.com/konih/kurator/api/v1alpha1"
-	"github.com/konih/kurator/test/utils"
 )
 
 // eventuallyExpectObjectEvent waits for a Kubernetes Event on the named CR.
@@ -27,11 +25,10 @@ func eventuallyExpectObjectEvent(ns, kind, name, eventType, reason string) {
 func hasObjectEvent(ns, kind, name, eventType, reason string) (bool, error) {
 	selector := fmt.Sprintf("involvedObject.name=%s,involvedObject.kind=%s", name, kind)
 	for _, resource := range []string{"events.events.k8s.io", "events"} {
-		cmd := exec.Command("kubectl", "get", resource, "-n", ns,
+		out, err := runKubectl("get", resource, "-n", ns,
 			"--field-selector", selector,
 			"-o", "jsonpath={range .items[*]}{.type}{\" \"}{.reason}{\"\\n\"}{end}",
 		)
-		out, err := utils.Run(cmd)
 		if err != nil {
 			continue
 		}

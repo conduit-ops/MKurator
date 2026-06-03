@@ -4,6 +4,7 @@
 package e2e
 
 import (
+	"context"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -19,13 +20,26 @@ const kubectlWaitTimeout = "2m"
 const KubectlWaitDuration = 2 * time.Minute
 
 const (
+	kubectlRequestTimeout = "30s"
+	kubectlCommandTimeout = 35 * time.Second
+
 	webhookApplyRetryTimeout  = 2 * time.Minute
 	webhookApplyRetryInterval = 2 * time.Second
 )
 
+// runKubectl runs kubectl with a bounded client and process timeout so a stuck API cannot hang the suite.
+func runKubectl(args ...string) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), kubectlCommandTimeout)
+	defer cancel()
+	kubectlArgs := append([]string{"--request-timeout=" + kubectlRequestTimeout}, args...)
+	return utils.Run(exec.CommandContext(ctx, "kubectl", kubectlArgs...))
+}
+
 // kubectlApply applies a multi-document manifest from stdin.
 func kubectlApply(manifest string) error {
-	cmd := exec.Command("kubectl", "apply", "-f", "-")
+	ctx, cancel := context.WithTimeout(context.Background(), kubectlCommandTimeout)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, "kubectl", "--request-timeout="+kubectlRequestTimeout, "apply", "-f", "-")
 	cmd.Stdin = strings.NewReader(manifest)
 	_, err := utils.Run(cmd)
 	return err
@@ -69,9 +83,8 @@ func applyWithWebhookRetry(manifest string) error {
 
 // kubectlDeleteWait deletes a namespaced resource and blocks until removal or kubectlWaitTimeout.
 func kubectlDeleteWait(resource, name, ns string) error {
-	cmd := exec.Command("kubectl", "delete", resource, name, "-n", ns,
+	out, err := runKubectl("delete", resource, name, "-n", ns,
 		"--wait=true", "--timeout="+kubectlWaitTimeout)
-	out, err := utils.Run(cmd)
 	if err != nil {
 		return fmt.Errorf(
 			"kubectl delete %s/%s -n %s did not finish within %s: %w; output: %s",
@@ -84,7 +97,7 @@ func kubectlDeleteWait(resource, name, ns string) error {
 // kubectlWait runs kubectl wait --for=<condition> with kubectlWaitTimeout.
 func kubectlWait(condition, resource, name, ns string) error {
 	args := []string{"wait", "--for=" + condition, "--timeout=" + kubectlWaitTimeout, "-n", ns, resource + "/" + name}
-	out, err := utils.Run(exec.Command("kubectl", args...))
+	out, err := runKubectl(args...)
 	if err != nil {
 		return fmt.Errorf(
 			"kubectl wait %s %s/%s -n %s timed out after %s: %w; output: %s",
@@ -96,9 +109,8 @@ func kubectlWait(condition, resource, name, ns string) error {
 
 // kubectlDeleteNoWait issues a delete without blocking on finalizers (MQ specs assert via mqweb).
 func kubectlDeleteNoWait(resource, name, ns string) error {
-	cmd := exec.Command("kubectl", "delete", resource, name, "-n", ns,
+	_, err := runKubectl("delete", resource, name, "-n", ns,
 		"--ignore-not-found", "--wait=false")
-	_, err := utils.Run(cmd)
 	return err
 }
 
@@ -109,6 +121,30 @@ func kubectlDeleteIgnoreNotFound(resource, name, ns string) {
 
 // kubectlDeleteClusterIgnoreNotFound best-effort deletes a cluster-scoped resource.
 func kubectlDeleteClusterIgnoreNotFound(resource, name string) {
-	cmd := exec.Command("kubectl", "delete", resource, name, "--ignore-not-found", "--wait=false")
-	_, _ = utils.Run(cmd)
+	_, _ = runKubectl("delete", resource, name, "--ignore-not-found", "--wait=false")
+}
+
+// kubectlStripFinalizers clears finalizers on a resource that still exists (stuck Terminating).
+func kubectlStripFinalizers(resource, name, ns string) {
+	out, err := runKubectl("get", resource, name, "-n", ns, "-o", "name")
+	if err != nil || strings.TrimSpace(out) == "" {
+		return
+	}
+	const patch = `{"metadata":{"finalizers":null}}`
+	_, _ = runKubectl("patch", resource, name, "-n", ns, "--type=merge", "-p", patch)
+}
+
+// kubectlForceRemoveNamespaced deletes without wait, then strips finalizers if the object remains.
+func kubectlForceRemoveNamespaced(resource, name, ns string) {
+	_ = kubectlDeleteNoWait(resource, name, ns)
+	kubectlStripFinalizers(resource, name, ns)
+}
+
+// cleanupMQSpec removes a messaging CR and its QueueManagerConnection without blocking on finalizers.
+// Child resources are removed before the connection so the operator can finish MQ teardown when possible.
+func cleanupMQSpec(ns, childResource, childName string) {
+	if childResource != "" && childName != "" {
+		kubectlForceRemoveNamespaced(childResource, childName, ns)
+	}
+	kubectlForceRemoveNamespaced("queuemanagerconnection", mqConnectionName, ns)
 }
