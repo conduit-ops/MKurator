@@ -19,6 +19,11 @@ import (
 // ensureOperatorForMQE2E (re)creates the operator install needed by Queue reconciliation tests.
 // The Manager suite tears down the namespace in AfterAll; MQ specs run afterward.
 func ensureOperatorForMQE2E() {
+	if e2eDeployMode() == "helm" {
+		deployOperatorForE2E()
+		return
+	}
+
 	By("creating manager namespace for MQ e2e")
 	Expect(kubectlApply(fmt.Sprintf(`apiVersion: v1
 kind: Namespace
@@ -90,11 +95,21 @@ func deployOperatorForE2EKustomize() {
 
 // deployOperatorForE2EHelm installs CRDs and the operator via task deploy:helm.
 func deployOperatorForE2EHelm() {
+	By("removing stale kurator-system namespace before Helm install")
+	cmd := exec.Command("kubectl", "delete", "ns", namespace, "--ignore-not-found", "--wait=true", "--timeout=120s")
+	_, _ = utils.Run(cmd)
+
 	By("deploying the controller-manager (task deploy:helm)")
-	cmd := exec.Command("task", "deploy:helm")
+	cmd = exec.Command("task", "deploy:helm")
 	cmd.Env = append(os.Environ(), fmt.Sprintf("DOCKER_IMAGE=%s", managerImage))
 	_, err := utils.Run(cmd)
 	Expect(err).NotTo(HaveOccurred(), "Failed to deploy the controller-manager via Helm")
+
+	By("labeling the namespace to enforce the restricted security policy")
+	cmd = exec.Command("kubectl", "label", "--overwrite", "ns", namespace,
+		"pod-security.kubernetes.io/enforce=restricted")
+	_, err = utils.Run(cmd)
+	Expect(err).NotTo(HaveOccurred(), "Failed to label namespace with restricted policy")
 
 	Eventually(func(g Gomega) {
 		check := exec.Command("kubectl", "get", "crd", "queuemanagerconnections.messaging.kurator.dev")

@@ -37,6 +37,11 @@ var _ = Describe("Manager", Serial, Ordered, func() {
 	// enforce the restricted security policy to the namespace, installing CRDs,
 	// and deploying the controller.
 	BeforeAll(func() {
+		if e2eDeployMode() == "helm" {
+			deployOperatorForE2E()
+			return
+		}
+
 		By("creating manager namespace")
 		cmd := exec.Command("kubectl", "create", "ns", namespace, "--dry-run=client", "-o", "yaml")
 		manifest, err := utils.Run(cmd)
