@@ -30,6 +30,7 @@ Each requirement has an ID (`NFR-x`), a priority (**MUST** / **SHOULD** /
 | REL-4 | Transient MQ/network errors are retried with backoff; terminal errors stop hot-looping and surface via status. | MUST | Adapter + reconciler unit tests |
 | REL-5 | The operator recovers from API-server disconnects (cache re-sync) without manual intervention. | SHOULD | Provided by controller-runtime; smoke test |
 | REL-6 | Graceful shutdown drains in-flight reconciles within the termination grace period. | SHOULD | Manual / e2e |
+| REL-7 | Operator `/readyz` fails when one or more non-deleting `QueueManagerConnection` resources exist and none report `Ready=True`; passes when no connections are configured or at least one connection is healthy. `/healthz` stays independent (liveness). | SHOULD | `internal/health` unit tests; envtest |
 
 ## 3. Observability
 

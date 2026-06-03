@@ -98,7 +98,7 @@ afterthoughts (NFRs in [NON_FUNCTIONAL_REQUIREMENTS.md](NON_FUNCTIONAL_REQUIREME
 | Concern | Approach |
 |---------|----------|
 | **Leader election** | Enabled (`--leader-elect`) so a multi-replica Deployment has exactly one active reconciler; standby replicas give fast failover. Uses a `Lease` in the operator namespace. |
-| **Health / readiness** | `healthz` and `readyz` on `:8081`; wired to Deployment liveness/readiness probes. Readiness gates on manager cache sync. |
+| **Health / readiness** | `healthz` (`/healthz`) always reports ok (process alive). `readyz` (`/readyz`) reports ok when there are no active `QueueManagerConnection` objects, or when at least one has `Ready=True` (successful mqweb ping); otherwise HTTP 500 so the Deployment stops routing traffic while every configured connection is down. Implemented in `internal/health`. |
 | **Metrics** | controller-runtime Prometheus metrics on `:8443` (HTTPS, authn/authz-protected) plus custom MQ counters/histograms. A `ServiceMonitor` is shipped (optional) for the local kube-prometheus-stack. |
 | **Graceful shutdown** | Manager stops on `SIGTERM`/`SIGINT`, draining in-flight reconciles within `terminationGracePeriodSeconds`. |
 | **Configuration** | Flags + env for metrics/health addresses, leader election, log level/format, and reconcile concurrency. No MQ endpoints in operator config — those live in `QueueManagerConnection` CRs. |
