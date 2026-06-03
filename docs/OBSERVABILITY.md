@@ -19,6 +19,56 @@ Doc index: [README.md](README.md) · Install: [INSTALL_AND_USE.md](INSTALL_AND_U
 The operator does **not** install Prometheus, Grafana, or the Prometheus Operator.
 You need a monitoring stack (or a vendor equivalent) to scrape and alert.
 
+## Quick start: metrics + dashboard
+
+User-facing samples live under [`config/samples/observability/`](../config/samples/observability/):
+
+| Artifact | Purpose |
+|----------|---------|
+| [`metrics-helm-values.yaml`](../config/samples/observability/metrics-helm-values.yaml) | Annotated Helm values — `ServiceMonitor` + `PrometheusRule` |
+| [`grafana-dashboard.json`](../config/samples/observability/grafana-dashboard.json) | Starter Grafana dashboard (panels aligned to Kurator metric names) |
+
+### 1. Enable scrape and starter alerts (Helm)
+
+Requires [Prometheus Operator](https://github.com/prometheus-operator/prometheus-operator)
+CRDs (e.g. **kube-prometheus-stack**). Adjust `metrics.serviceMonitor.labels` to match
+your Prometheus `serviceMonitorSelector`.
+
+```sh
+helm upgrade --install kurator ./charts/kurator \
+  --namespace kurator-system \
+  --create-namespace \
+  -f config/samples/observability/metrics-helm-values.yaml
+```
+
+Local kind dev (image + logging overrides): use
+[`charts/kurator/samples/values-kind.yaml`](../charts/kurator/samples/values-kind.yaml)
+instead — it enables the same metrics toggles.
+
+Ensure Prometheus can scrape secure metrics: bind **`{release}-metrics-reader`**
+to the Prometheus ServiceAccount (see [RBAC](#rbac-metrics-reader-pattern) below).
+
+### 2. Import the Grafana dashboard
+
+**UI:** Grafana → Dashboards → New → Import → Upload
+`config/samples/observability/grafana-dashboard.json`. Select your Prometheus data
+source and set the **Namespace** variable (default `kurator-system`).
+
+**Provisioning (optional):** mount the JSON under your Grafana sidecar or
+`dashboardProviders` path; set `uid: kurator-operator` to avoid duplicates on re-import.
+
+Panels use the custom metrics below plus controller-runtime workqueue /
+`controller_runtime_reconcile_total` from the same `/metrics` endpoint.
+
+### 3. Verify
+
+```sh
+kubectl -n kurator-system get servicemonitor,prometheusrule
+# In Prometheus: up{namespace="kurator-system"} and kurator_reconcile_total
+```
+
+See [Verify scraping](#verify-scraping) for port-forward and 403 troubleshooting.
+
 ## Metrics endpoint
 
 - **Path:** `/metrics`
@@ -159,7 +209,9 @@ In Prometheus UI, query `up{namespace="kurator-system"}` for the Kurator target.
 
 ## Dashboards and SLOs
 
-No first-party Grafana dashboard is required for operation. Start from:
+Import the starter dashboard from
+[`config/samples/observability/grafana-dashboard.json`](../config/samples/observability/grafana-dashboard.json)
+(see [Quick start](#quick-start-metrics--dashboard)). Ad-hoc PromQL:
 
 - Reconcile error rate: `rate(kurator_reconcile_errors_total[5m])` by `controller`
 - MQ ping failures: `rate(kurator_mq_operations_total{operation="ping",result="error"}[5m])`
@@ -172,6 +224,7 @@ Align alerting with [NON_FUNCTIONAL_REQUIREMENTS.md](NON_FUNCTIONAL_REQUIREMENTS
 
 ## See also
 
+- [`config/samples/observability/`](../config/samples/observability/) — Helm values + Grafana JSON  
 - [LOGGING.md](LOGGING.md) — log levels and formats  
 - [charts/kurator/README.md](../charts/kurator/README.md) — Helm values table  
 - [ARCHITECTURE.md](ARCHITECTURE.md) — metrics component overview  

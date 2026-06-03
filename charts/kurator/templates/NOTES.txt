@@ -93,6 +93,8 @@ Metrics (HTTPS) and Prometheus scraping
       --set metrics.serviceMonitor.labels.release=kube-prometheus-stack
 
   See charts/kurator/samples/values-kind.yaml for a local kube-prometheus-stack example.
+  Sample Grafana dashboard: config/samples/observability/grafana-dashboard.json
+  (docs/OBSERVABILITY.md#quick-start-metrics--dashboard).
 {{- end }}
 {{- else }}
 

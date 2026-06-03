@@ -513,7 +513,8 @@ Walkthrough with the web console and `runmqsc`: [IBM_MQ_101.md](IBM_MQ_101.md).
 ## Day-2 operations
 
 For version upgrades, see [Upgrading from a previous release](#upgrading-from-a-previous-release).
-For Prometheus scrape and alerting, see [OBSERVABILITY.md](OBSERVABILITY.md).
+For Prometheus scrape, alerting, and the sample Grafana dashboard, see
+[OBSERVABILITY.md](OBSERVABILITY.md) ([quick start](OBSERVABILITY.md#quick-start-metrics--dashboard)).
 For log level and format, see [LOGGING.md](LOGGING.md).
 
 ### Change queue attributes
@@ -684,7 +685,8 @@ The manager exposes Prometheus metrics on **HTTPS port 8443** at `/metrics`. A
 `{release}-metrics` Service (for example `kurator-metrics` in `kurator-system`)
 fronts that port. Secure mode (default) requires a Kubernetes service-account token
 with the chart’s **metrics-reader** RBAC — see [OBSERVABILITY.md](OBSERVABILITY.md)
-for `ServiceMonitor` setup, auth bindings, and starter queries such as
+([quick start](OBSERVABILITY.md#quick-start-metrics--dashboard)) for `ServiceMonitor`
+setup, sample Helm values, Grafana dashboard import, and starter queries such as
 `kurator_reconcile_errors_total`.
 
 ```sh
@@ -789,7 +791,7 @@ kubectl delete -f install-crds.yaml
 ## Next steps
 
 - [UPGRADE.md](UPGRADE.md) — operator, CRD, and webhook upgrades  
-- [OBSERVABILITY.md](OBSERVABILITY.md) — metrics and ServiceMonitor  
+- [OBSERVABILITY.md](OBSERVABILITY.md) — metrics, ServiceMonitor, sample dashboard  
 - [LOGGING.md](LOGGING.md) — structured logging  
 - [ROADMAP.md](ROADMAP.md) — auth resources and additional MQ types on the horizon  
 - [ARCHITECTURE.md](ARCHITECTURE.md) — reconcilers, security, error handling  
