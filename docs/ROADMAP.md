@@ -185,11 +185,11 @@ reference MQSC; e2e fixture
   ChannelAuthRule without a matching Channel.
 - [x] **MQAdmin GET + drift** — `GetChannelAuth` / `GetAuthority`; replace-on-diff
   in auth reconcilers; `status.desiredMQSC` on auth CRs.
-- [x] Release tags **`v0.5.0`** and **`v0.5.1`** published on GitHub.
+- [x] Release tags **`v0.5.0`**, **`v0.5.1`**, and **`v0.5.2`** published on GitHub.
 
 **Remaining:**
 
-- [ ] Confirm GitHub Actions **CI**, **Integration**, and **E2E** workflows green
+- [x] Confirm GitHub Actions **CI**, **Integration**, and **E2E** workflows green
   on `main` before **`v0.5.2`** tag (release gate in [RELEASE.md](RELEASE.md)).
 - [ ] **`task ci:e2e` green locally** — maintainer verification of full kind + MQ
   stack (Kustomize deploy path); respect `exclusive-test.lock`.
@@ -201,7 +201,7 @@ reference MQSC; e2e fixture
   extend API fields, integration, and e2e when needed.
 
 Exit criteria: declarative channel auth and OAM authority records reconciled on
-kind with e2e coverage — **partial** (core auth shipped; **`v0.5.2`** gated on green CI/E2E).
+kind with e2e coverage — **met** for core auth (**`v0.5.2`**); extended CHLAUTH rule types remain optional.
 
 ## Repo visibility
 
