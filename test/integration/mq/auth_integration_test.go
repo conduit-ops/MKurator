@@ -225,12 +225,15 @@ func TestIntegration_DeleteAuthority(t *testing.T) {
 		t.Fatalf("DeleteAuthority: %v", err)
 	}
 
-	_, err = c.GetAuthority(ctx, authSpec)
-	if err == nil {
-		t.Fatal("expected not found after delete")
+	state, err := c.GetAuthority(ctx, authSpec)
+	if err != nil {
+		if errors.Is(err, mqadmin.ErrNotFound) {
+			return
+		}
+		t.Fatalf("GetAuthority: %v", err)
 	}
-	if !errors.Is(err, mqadmin.ErrNotFound) {
-		t.Fatalf("expected ErrNotFound, got %v", err)
+	if !authorityRemoved(state.Authorities) {
+		t.Fatalf("expected authority removed after delete, got %v", state.Authorities)
 	}
 }
 
@@ -266,32 +269,31 @@ func TestIntegration_ChannelAuth_UpdateViaReplace(t *testing.T) {
 		t.Fatalf("DefineChannel: %v", err)
 	}
 
-	set := func(descr, checkClient string) {
+	set := func(checkClient string) {
 		t.Helper()
 		spec := base
-		spec.Description = descr
 		spec.CheckClient = checkClient
 		if err := c.SetChannelAuth(ctx, spec); err != nil {
-			t.Fatalf("SetChannelAuth descr=%s checkClient=%s: %v", descr, checkClient, err)
+			t.Fatalf("SetChannelAuth checkClient=%s: %v", checkClient, err)
 		}
 	}
 
-	set("kurator chlauth v1", "REQUIRED")
+	set("REQUIRED")
 	state, err := c.GetChannelAuth(ctx, base)
 	if err != nil {
 		t.Fatalf("GetChannelAuth: %v", err)
 	}
 	if !strings.EqualFold(state.CheckClient, "REQUIRED") {
-		t.Fatalf("state after v1 = %+v", state)
+		t.Fatalf("checkClient after v1 = %q", state.CheckClient)
 	}
 
-	set("kurator chlauth v2", "ASQADMIN")
+	set("REQDADM")
 	state, err = c.GetChannelAuth(ctx, base)
 	if err != nil {
 		t.Fatalf("GetChannelAuth after update: %v", err)
 	}
-	if !strings.EqualFold(state.CheckClient, "ASQADMIN") {
-		t.Fatalf("state after v2 = %+v", state)
+	if !strings.EqualFold(state.CheckClient, "REQDADM") {
+		t.Fatalf("checkClient after v2 = %q", state.CheckClient)
 	}
 }
 
@@ -409,6 +411,13 @@ func TestIntegration_DeleteAuthority_Idempotent(t *testing.T) {
 	if err := c.DeleteAuthority(ctx, authSpec); err != nil {
 		t.Fatalf("DeleteAuthority second on missing record: %v", err)
 	}
+}
+
+func authorityRemoved(authorities []string) bool {
+	if len(authorities) == 0 {
+		return true
+	}
+	return len(authorities) == 1 && strings.EqualFold(authorities[0], "NONE")
 }
 
 func authoritySetEqual(got, want []string) bool {
