@@ -27,6 +27,24 @@ func TestBuildSetChannelAuthMQSC(t *testing.T) {
 	}
 }
 
+func TestBuildSetChannelAuthMQSCRemove(t *testing.T) {
+	cmd, err := buildSetChannelAuthMQSC(mqadmin.ChannelAuthSpec{
+		ChannelName: "DEV.APP.SVRCONN.0TLS",
+		RuleType:    mqadmin.ChannelAuthRuleTypeAddressMap,
+		Address:     "*",
+		UserSource:  "CHANNEL",
+		CheckClient: "REQUIRED",
+		Description: "ignored on remove",
+	}, "REMOVE")
+	if err != nil {
+		t.Fatalf("buildSetChannelAuthMQSC: %v", err)
+	}
+	want := "SET CHLAUTH('DEV.APP.SVRCONN.0TLS') TYPE(ADDRESSMAP) ADDRESS('*') ACTION(REMOVE)"
+	if cmd != want {
+		t.Fatalf("got %q, want %q", cmd, want)
+	}
+}
+
 func TestBuildSetAuthorityMQSC(t *testing.T) {
 	cmd, err := buildSetAuthorityMQSC(mqadmin.AuthoritySpec{
 		Profile:     "APP.ORDERS",

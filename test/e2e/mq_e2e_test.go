@@ -18,23 +18,23 @@ import (
 )
 
 const (
-	mqConnectionName  = "e2e-qm1"
-	mqQueueCRName     = "e2e-orders"
-	mqQueueObject     = "E2E.APP.ORDERS"
-	mqQueueMaxDepthV1 = "1000"
-	mqQueueMaxDepthV2 = "2000"
-	mqTopicCRName     = "e2e-retail-orders"
-	mqTopicObject     = "E2E.RETAIL.ORDERS"
-	mqChannelCRName   = "e2e-orders-app"
-	mqChannelObject   = "E2E.ORDERS.APP"
-	mqChannelAuthCRName = "e2e-dev-app-addressmap"
-	mqAuthorityCRName   = "e2e-app-orders-get-put"
+	mqConnectionName      = "e2e-qm1"
+	mqQueueCRName         = "e2e-orders"
+	mqQueueObject         = "E2E.APP.ORDERS"
+	mqQueueMaxDepthV1     = "1000"
+	mqQueueMaxDepthV2     = "2000"
+	mqTopicCRName         = "e2e-retail-orders"
+	mqTopicObject         = "E2E.RETAIL.ORDERS"
+	mqChannelCRName       = "e2e-orders-app"
+	mqChannelObject       = "E2E.ORDERS.APP"
+	mqChannelAuthCRName   = "e2e-dev-app-addressmap"
+	mqChannelPrereqCRName = "e2e-dev-app-channel"
+	mqAuthorityCRName     = "e2e-app-orders-get-put"
 )
 
 func e2eLocalQueueSpec() mqadmin.QueueSpec {
 	return mqadmin.QueueSpec{Name: mqQueueObject, Type: mqadmin.QueueTypeLocal}
 }
-
 
 var _ = Describe("IBM MQ integration", Serial, Label("mq"), func() {
 	BeforeEach(func() {
@@ -132,9 +132,7 @@ spec:
 			Expect(state.Attributes["maxdepth"]).To(Equal(mqQueueMaxDepthV1))
 
 			By("deleting the Queue CR and expecting MQ object removal")
-			cmd := exec.Command("kubectl", "delete", "queue", mqQueueCRName, "-n", namespace, "--wait=true")
-			_, err = utils.Run(cmd)
-			Expect(err).NotTo(HaveOccurred())
+			Expect(kubectlDeleteWait("queue", mqQueueCRName, namespace)).To(Succeed())
 
 			Eventually(func(g Gomega) {
 				_, err := client.GetQueue(ctx, e2eLocalQueueSpec())
@@ -279,9 +277,7 @@ spec:
 			Expect(err).NotTo(HaveOccurred())
 			Expect(state.Attributes["topstr"]).To(Equal("e2e/retail/orders"))
 
-			cmd := exec.Command("kubectl", "delete", "topic", mqTopicCRName, "-n", namespace, "--wait=true")
-			_, err = utils.Run(cmd)
-			Expect(err).NotTo(HaveOccurred())
+			Expect(kubectlDeleteWait("topic", mqTopicCRName, namespace)).To(Succeed())
 
 			Eventually(func(g Gomega) {
 				ok, err := topicExists(ctx, client, mqTopicObject)
@@ -325,9 +321,7 @@ spec:
 			Expect(err).NotTo(HaveOccurred())
 			Expect(ok).To(BeTrue())
 
-			cmd := exec.Command("kubectl", "delete", "channel", mqChannelCRName, "-n", namespace, "--wait=true")
-			_, err = utils.Run(cmd)
-			Expect(err).NotTo(HaveOccurred())
+			Expect(kubectlDeleteWait("channel", mqChannelCRName, namespace)).To(Succeed())
 
 			Eventually(func(g Gomega) {
 				ok, err := svrconnChannelExists(ctx, client, mqChannelObject)
@@ -366,6 +360,7 @@ spec:
 		AfterEach(func() {
 			_ = exec.Command("kubectl", "delete", "channelauthrule", mqChannelAuthCRName, "-n", namespace, "--ignore-not-found").Run()
 			_ = exec.Command("kubectl", "delete", "authorityrecord", mqAuthorityCRName, "-n", namespace, "--ignore-not-found").Run()
+			_ = exec.Command("kubectl", "delete", "channel", mqChannelPrereqCRName, "-n", namespace, "--ignore-not-found").Run()
 			_ = exec.Command("kubectl", "delete", "queue", mqQueueCRName, "-n", namespace, "--ignore-not-found").Run()
 			_ = exec.Command("kubectl", "delete", "queuemanagerconnection", mqConnectionName, "-n", namespace, "--ignore-not-found").Run()
 		})
@@ -379,6 +374,21 @@ spec:
 			defer cancel()
 
 			Expect(applyMQSCFixture(ctx, client, "channel-auth-prereq.mqsc")).To(Succeed())
+
+			channelYAML := fmt.Sprintf(`apiVersion: messaging.kurator.dev/v1alpha1
+kind: Channel
+metadata:
+  name: %s
+  namespace: %s
+spec:
+  connectionRef:
+    name: %s
+  channelName: %s
+  type: svrconn
+  attributes:
+    trptype: tcp
+`, mqChannelPrereqCRName, namespace, mqConnectionName, e2eChannelName)
+			Expect(kubectlApply(channelYAML)).To(Succeed())
 
 			carYAML := fmt.Sprintf(`apiVersion: messaging.kurator.dev/v1alpha1
 kind: ChannelAuthRule
@@ -409,9 +419,7 @@ spec:
 			Expect(err).NotTo(HaveOccurred())
 			Expect(ok).To(BeTrue())
 
-			cmd := exec.Command("kubectl", "delete", "channelauthrule", mqChannelAuthCRName, "-n", namespace, "--wait=true")
-			_, err = utils.Run(cmd)
-			Expect(err).NotTo(HaveOccurred())
+			Expect(kubectlDeleteWait("channelauthrule", mqChannelAuthCRName, namespace)).To(Succeed())
 
 			Eventually(func(g Gomega) {
 				ok, err := chlauthRuleExists(ctx, client, e2eChannelName)
@@ -480,9 +488,7 @@ spec:
 			Expect(err).NotTo(HaveOccurred())
 			Expect(ok).To(BeTrue())
 
-			cmd := exec.Command("kubectl", "delete", "authorityrecord", mqAuthorityCRName, "-n", namespace, "--wait=true")
-			_, err = utils.Run(cmd)
-			Expect(err).NotTo(HaveOccurred())
+			Expect(kubectlDeleteWait("authorityrecord", mqAuthorityCRName, namespace)).To(Succeed())
 
 			Eventually(func(g Gomega) {
 				ok, err := authorityRecordExists(ctx, client, mqQueueObject, "QUEUE", "app")

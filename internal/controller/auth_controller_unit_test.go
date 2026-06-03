@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/mock"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -106,6 +107,70 @@ func TestChannelAuthRuleReconciler_DeleteTerminalError(t *testing.T) {
 	_, err := rec.Reconcile(ctx, ctrl.Request{NamespacedName: key})
 	if err != nil {
 		t.Fatalf("Reconcile: %v", err)
+	}
+
+	var updated messagingv1alpha1.ChannelAuthRule
+	if err := cl.Get(ctx, key, &updated); err != nil {
+		t.Fatalf("Get after delete error: %v", err)
+	}
+	if len(updated.Finalizers) == 0 {
+		t.Fatal("finalizer should remain when delete fails")
+	}
+}
+
+func TestChannelAuthRuleReconciler_DeleteSuccessRemovesFinalizer(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	ns := "kurator-system"
+	key := types.NamespacedName{Namespace: ns, Name: "dev-app-addressmap"}
+	s := unitSchemeOrFatal(t)
+
+	conn := readyConnForUnit(ns)
+	now := metav1.Now()
+	rule := &messagingv1alpha1.ChannelAuthRule{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              "dev-app-addressmap",
+			Namespace:         ns,
+			Finalizers:        []string{messagingv1alpha1.ChannelAuthRuleFinalizer},
+			DeletionTimestamp: &now,
+		},
+		Spec: messagingv1alpha1.ChannelAuthRuleSpec{
+			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+			ChannelName:   "DEV.APP.SVRCONN.0TLS",
+			RuleType:      messagingv1alpha1.ChannelAuthRuleTypeAddressMap,
+			Address:       "*",
+		},
+	}
+
+	cl := fake.NewClientBuilder().
+		WithScheme(s).
+		WithStatusSubresource(rule, conn).
+		WithObjects(conn, rule).
+		Build()
+
+	spec := toMQChannelAuthSpec(rule)
+	mockAdmin := mqadmintest.NewMockAdmin(t)
+	mockAdmin.EXPECT().DeleteChannelAuth(mock.Anything, spec).Return(nil)
+
+	mockFactory := mqadmintest.NewMockFactory(t)
+	mockFactory.EXPECT().ForConnection(mock.Anything, mock.Anything).Return(mockAdmin, nil)
+
+	rec := &ChannelAuthRuleReconciler{Client: cl, Scheme: s, MQFactory: mockFactory}
+	_, err := rec.Reconcile(ctx, ctrl.Request{NamespacedName: key})
+	if err != nil {
+		t.Fatalf("Reconcile: %v", err)
+	}
+
+	var updated messagingv1alpha1.ChannelAuthRule
+	err = cl.Get(ctx, key, &updated)
+	if err == nil {
+		if len(updated.Finalizers) != 0 {
+			t.Fatalf("finalizer should be removed, got %v", updated.Finalizers)
+		}
+		return
+	}
+	if !k8serrors.IsNotFound(err) {
+		t.Fatalf("Get after delete success: %v", err)
 	}
 }
 
