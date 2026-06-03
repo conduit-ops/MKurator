@@ -183,6 +183,69 @@ spec:
 			))
 		})
 
+		It("should reject ChannelAuthRule without a matching Channel at admission", func() {
+			waitForControllerAndWebhookReady()
+
+			const carWebhookQMC = "webhook-e2e-car-qmc"
+			const carWebhookChannel = "WEBHOOK.MISSING.CHANNEL"
+
+			DeferCleanup(func() {
+				kubectlDeleteIgnoreNotFound("channelauthrule", "webhook-e2e-car-invalid", namespace)
+				kubectlDeleteIgnoreNotFound("channel", "webhook-e2e-car-channel", namespace)
+				kubectlDeleteIgnoreNotFound("queuemanagerconnection", carWebhookQMC, namespace)
+				kubectlDeleteIgnoreNotFound("secret", "webhook-e2e-car-creds", namespace)
+			})
+
+			Expect(kubectlApply(fmt.Sprintf(`apiVersion: v1
+kind: Secret
+metadata:
+  name: webhook-e2e-car-creds
+  namespace: %s
+type: Opaque
+stringData:
+  username: admin
+  mqAdminPassword: placeholder
+`, namespace))).To(Succeed())
+
+			Expect(kubectlApply(fmt.Sprintf(`apiVersion: messaging.kurator.dev/v1alpha1
+kind: QueueManagerConnection
+metadata:
+  name: %s
+  namespace: %s
+  annotations:
+    messaging.kurator.dev/allow-insecure-tls: "true"
+spec:
+  queueManager: QM1
+  endpoint: https://placeholder.invalid:9443
+  tls:
+    insecureSkipVerify: true
+  credentialsSecretRef:
+    name: webhook-e2e-car-creds
+`, carWebhookQMC, namespace))).To(Succeed())
+
+			invalidCAR := fmt.Sprintf(`apiVersion: messaging.kurator.dev/v1alpha1
+kind: ChannelAuthRule
+metadata:
+  name: webhook-e2e-car-invalid
+  namespace: %s
+spec:
+  connectionRef:
+    name: %s
+  channelName: %s
+  ruleType: ADDRESSMAP
+  address: "*"
+`, namespace, carWebhookQMC, carWebhookChannel)
+			err := kubectlApply(invalidCAR)
+			Expect(err).To(HaveOccurred(), "ChannelAuthRule without a Channel CR should be rejected")
+			Expect(err.Error()).To(Or(
+				ContainSubstring("denied"),
+				ContainSubstring("Forbidden"),
+				ContainSubstring("Invalid"),
+				ContainSubstring("is invalid"),
+				ContainSubstring(carWebhookChannel),
+			))
+		})
+
 		It("should ensure the metrics endpoint is serving metrics", func() {
 			By("creating a ClusterRoleBinding for the service account to allow access to metrics")
 			cmd := exec.Command("kubectl", "create", "clusterrolebinding", metricsRoleBindingName,
