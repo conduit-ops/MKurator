@@ -450,6 +450,12 @@ KURATOR_MAX_CONCURRENT_RECONCILES=4
 
 Default is **1** (controller-runtime default). Values below 1 are clamped to 1.
 
+**Health probes:** the manager serves `:8081` with `/healthz` (liveness, always ok) and
+`/readyz` (readiness). Readiness reflects aggregated `QueueManagerConnection` status: no
+QMCs → ready; at least one `Ready=True` → ready; otherwise not ready (e.g. all pings
+failing). See [ARCHITECTURE.md](ARCHITECTURE.md#operator-runtime-concerns) and
+`internal/health/mq_connectivity.go`.
+
 ## Troubleshooting
 
 - **`kustomize: command not found`**: use `task deploy` (invokes `go tool
