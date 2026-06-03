@@ -99,10 +99,11 @@ func kubectlDeleteNoWait(resource, name, ns string) error {
 
 // kubectlDeleteIgnoreNotFound best-effort deletes without waiting (test cleanup).
 func kubectlDeleteIgnoreNotFound(resource, name, ns string) {
-	_ = exec.Command("kubectl", "delete", resource, name, "-n", ns, "--ignore-not-found").Run()
+	_ = kubectlDeleteNoWait(resource, name, ns)
 }
 
 // kubectlDeleteClusterIgnoreNotFound best-effort deletes a cluster-scoped resource.
 func kubectlDeleteClusterIgnoreNotFound(resource, name string) {
-	_ = exec.Command("kubectl", "delete", resource, name, "--ignore-not-found").Run()
+	cmd := exec.Command("kubectl", "delete", resource, name, "--ignore-not-found", "--wait=false")
+	_, _ = utils.Run(cmd)
 }
