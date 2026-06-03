@@ -73,5 +73,5 @@ type TopicList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&Topic{}, &TopicList{})
+	Register(&Topic{}, &TopicList{})
 }

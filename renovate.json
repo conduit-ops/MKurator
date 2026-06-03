@@ -70,6 +70,16 @@
       ],
       "datasourceTemplate": "docker",
       "depNameTemplate": "golang"
+    },
+    {
+      "customType": "regex",
+      "description": "Dockerfile builder golang image tag",
+      "managerFilePatterns": ["/Dockerfile$/"],
+      "matchStrings": [
+        "FROM golang:(?<currentValue>\\d+\\.\\d+\\.\\d+) AS"
+      ],
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "golang"
     }
   ],
   "packageRules": [
@@ -96,8 +106,17 @@
       "groupName": "terraform"
     },
     {
+      "description": "Pre-commit hook repo revisions",
       "matchManagers": ["pre-commit"],
+      "matchFileNames": [".pre-commit-config.yaml"],
       "groupName": "pre-commit hooks"
+    },
+    {
+      "description": "Controller and fixture Dockerfiles",
+      "matchManagers": ["dockerfile", "custom.regex"],
+      "matchFileNames": ["Dockerfile", "test/e2e/fixtures/metrics-curl/Dockerfile"],
+      "matchDepNames": ["golang", "gcr.io/distroless/static"],
+      "groupName": "docker images"
     },
     {
       "description": "Group platform CLI tool bumps (Taskfile + CI action inputs)",

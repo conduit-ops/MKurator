@@ -105,5 +105,5 @@ type ChannelAuthRuleList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&ChannelAuthRule{}, &ChannelAuthRuleList{})
+	Register(&ChannelAuthRule{}, &ChannelAuthRuleList{})
 }
