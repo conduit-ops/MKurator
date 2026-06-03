@@ -305,6 +305,83 @@ func TestChannelAuthRuleWebhookValidateCreateBlockUser(t *testing.T) {
 	}
 }
 
+func TestChannelAuthRuleWebhookValidateCreateRuleTypeTable(t *testing.T) {
+	tests := []struct {
+		name    string
+		spec    messagingv1alpha1.ChannelAuthRuleSpec
+		wantErr bool
+	}{
+		{
+			name: "addressmap missing address",
+			spec: messagingv1alpha1.ChannelAuthRuleSpec{
+				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+				ChannelName:   "ORDERS.APP",
+				RuleType:      messagingv1alpha1.ChannelAuthRuleTypeAddressMap,
+			},
+			wantErr: true,
+		},
+		{
+			name: "blockaddr missing address",
+			spec: messagingv1alpha1.ChannelAuthRuleSpec{
+				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+				ChannelName:   "ORDERS.APP",
+				RuleType:      messagingv1alpha1.ChannelAuthRuleTypeBlockAddr,
+			},
+			wantErr: true,
+		},
+		{
+			name: "blockaddr valid",
+			spec: messagingv1alpha1.ChannelAuthRuleSpec{
+				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+				ChannelName:   "ORDERS.APP",
+				RuleType:      messagingv1alpha1.ChannelAuthRuleTypeBlockAddr,
+				Address:       "192.0.2.1",
+			},
+			wantErr: false,
+		},
+		{
+			name: "usermap passes without deferred clientUser field",
+			spec: messagingv1alpha1.ChannelAuthRuleSpec{
+				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+				ChannelName:   "ORDERS.APP",
+				RuleType:      messagingv1alpha1.ChannelAuthRuleTypeUserMap,
+			},
+			wantErr: false,
+		},
+		{
+			name: "sslpeermap passes without deferred sslPeer field",
+			spec: messagingv1alpha1.ChannelAuthRuleSpec{
+				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+				ChannelName:   "ORDERS.APP",
+				RuleType:      messagingv1alpha1.ChannelAuthRuleTypeSSLPeerMap,
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			scheme := webhookTestScheme(t)
+			cl := fake.NewClientBuilder().WithScheme(scheme).
+				WithObjects(sampleWebhookConn("ns"), sampleWebhookChannel("ns", "orders-app", "ORDERS.APP")).
+				Build()
+			v := &channelAuthRuleCustomValidator{Client: cl}
+
+			rule := &messagingv1alpha1.ChannelAuthRule{
+				ObjectMeta: metav1.ObjectMeta{Name: "car-table", Namespace: "ns"},
+				Spec:       tt.spec,
+			}
+			_, err := v.ValidateCreate(context.Background(), rule)
+			if tt.wantErr && err == nil {
+				t.Fatal("expected ValidateCreate error")
+			}
+			if !tt.wantErr && err != nil {
+				t.Fatalf("ValidateCreate: %v", err)
+			}
+		})
+	}
+}
+
 func TestChannelAuthRuleWebhookValidateCreateMissingChannel(t *testing.T) {
 	scheme := webhookTestScheme(t)
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(sampleWebhookConn("ns")).Build()
