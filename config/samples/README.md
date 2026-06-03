@@ -316,6 +316,15 @@ See [LOGGING.md](../../docs/LOGGING.md).
 
 ---
 
+## Observability samples (`observability/`)
+
+Prometheus/Grafana artifacts (not CRs): annotated Helm values for
+`ServiceMonitor` + `PrometheusRule`, and a starter Grafana dashboard JSON.
+See [observability/README.md](observability/README.md) and
+[OBSERVABILITY.md](../../docs/OBSERVABILITY.md#quick-start-metrics--dashboard).
+
+---
+
 ## Verify reconciliation
 
 ```sh

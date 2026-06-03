@@ -1,0 +1,50 @@
+# Annotated Helm values: enable Prometheus scrape, starter alerts, and (separately)
+# import config/samples/observability/grafana-dashboard.json into Grafana.
+#
+# Prerequisites:
+#   - Prometheus Operator CRDs (e.g. kube-prometheus-stack) in the cluster
+#   - Prometheus serviceMonitorSelector labels matching metrics.serviceMonitor.labels
+#
+# Apply:
+#   helm upgrade --install kurator ./charts/kurator \
+#     --namespace kurator-system \
+#     --create-namespace \
+#     -f config/samples/observability/metrics-helm-values.yaml
+#
+# Local kind stack (build + load image first): use charts/kurator/samples/values-kind.yaml
+# instead — it includes the same metrics toggles plus image/logging overrides.
+#
+# See docs/OBSERVABILITY.md for RBAC (metrics-reader binding) and verification steps.
+
+metrics:
+  # Default true — exposes /metrics on HTTPS port 8443 with Kubernetes API auth.
+  enabled: true
+  secure: true
+
+  serviceMonitor:
+    # Creates charts/kurator/templates/servicemonitor.yaml in the release namespace.
+    enabled: true
+    interval: 30s
+    scrapeTimeout: 10s
+    # Must match your Prometheus instance serviceMonitorSelector (kube-prometheus-stack default):
+    labels:
+      release: kube-prometheus-stack
+
+  prometheusRule:
+    # Creates charts/kurator/templates/prometheusrule.yaml (kurator.rules alert group).
+    enabled: true
+    labels:
+      release: kube-prometheus-stack
+
+# Custom metrics scraped from /metrics (see internal/metrics/metrics.go):
+#   kurator_reconcile_total{controller,result}
+#   kurator_reconcile_errors_total{controller}
+#   kurator_mq_operations_total{operation,result}
+#
+# Controller labels: queue, topic, channel, channelauthrule, authorityrecord,
+# queuemanagerconnection.
+#
+# MQ operation labels: ping, get_queue, define_queue, delete_queue, get_topic,
+# define_topic, delete_topic, get_channel, define_channel, delete_channel,
+# set_channel_auth, get_channel_auth, delete_channel_auth, set_authority,
+# get_authority, delete_authority, run_mqsc.
