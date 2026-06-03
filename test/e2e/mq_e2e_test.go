@@ -86,10 +86,10 @@ var _ = Describe("IBM MQ integration", Serial, Label("mq"), func() {
 		})
 
 		AfterEach(func() {
-			_ = exec.Command("kubectl", "delete", "queue", mqQueueCRName, "-n", namespace, "--ignore-not-found").Run()
-			_ = exec.Command("kubectl", "delete", "topic", mqTopicCRName, "-n", namespace, "--ignore-not-found").Run()
-			_ = exec.Command("kubectl", "delete", "channel", mqChannelCRName, "-n", namespace, "--ignore-not-found").Run()
-			_ = exec.Command("kubectl", "delete", "queuemanagerconnection", mqConnectionName, "-n", namespace, "--ignore-not-found").Run()
+			kubectlDeleteIgnoreNotFound("queue", mqQueueCRName, namespace)
+			kubectlDeleteIgnoreNotFound("topic", mqTopicCRName, namespace)
+			kubectlDeleteIgnoreNotFound("channel", mqChannelCRName, namespace)
+			kubectlDeleteIgnoreNotFound("queuemanagerconnection", mqConnectionName, namespace)
 		})
 
 		It("reconciles a Queue CR against the kind IBM MQ queue manager", func() {
@@ -132,12 +132,13 @@ spec:
 			Expect(state.Attributes["maxdepth"]).To(Equal(mqQueueMaxDepthV1))
 
 			By("deleting the Queue CR and expecting MQ object removal")
-			Expect(kubectlDeleteWait("queue", mqQueueCRName, namespace)).To(Succeed())
+			Expect(kubectlDeleteWait("queue", mqQueueCRName, namespace)).To(Succeed(),
+				"Queue CR delete should complete within %s", kubectlWaitTimeout)
 
 			Eventually(func(g Gomega) {
 				_, err := client.GetQueue(ctx, e2eLocalQueueSpec())
-				g.Expect(err).To(HaveOccurred())
-			}).WithTimeout(2 * time.Minute).WithPolling(3 * time.Second).Should(Succeed())
+				g.Expect(err).To(HaveOccurred(), "queue %s should be removed from MQ after CR delete", mqQueueObject)
+			}).WithTimeout(KubectlWaitDuration).WithPolling(3 * time.Second).Should(Succeed())
 		})
 
 		It("reconciles Queue attribute updates after spec changes", func() {
@@ -277,13 +278,14 @@ spec:
 			Expect(err).NotTo(HaveOccurred())
 			Expect(state.Attributes["topstr"]).To(Equal("e2e/retail/orders"))
 
-			Expect(kubectlDeleteWait("topic", mqTopicCRName, namespace)).To(Succeed())
+			Expect(kubectlDeleteWait("topic", mqTopicCRName, namespace)).To(Succeed(),
+				"Topic CR delete should complete within %s", kubectlWaitTimeout)
 
 			Eventually(func(g Gomega) {
 				ok, err := topicExists(ctx, client, mqTopicObject)
 				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(ok).To(BeFalse())
-			}).WithTimeout(2 * time.Minute).WithPolling(3 * time.Second).Should(Succeed())
+				g.Expect(ok).To(BeFalse(), "topic %s should be removed from MQ after CR delete", mqTopicObject)
+			}).WithTimeout(KubectlWaitDuration).WithPolling(3 * time.Second).Should(Succeed())
 		})
 
 		It("reconciles a Channel CR against the kind IBM MQ queue manager", func() {
@@ -321,13 +323,14 @@ spec:
 			Expect(err).NotTo(HaveOccurred())
 			Expect(ok).To(BeTrue())
 
-			Expect(kubectlDeleteWait("channel", mqChannelCRName, namespace)).To(Succeed())
+			Expect(kubectlDeleteWait("channel", mqChannelCRName, namespace)).To(Succeed(),
+				"Channel CR delete should complete within %s", kubectlWaitTimeout)
 
 			Eventually(func(g Gomega) {
 				ok, err := svrconnChannelExists(ctx, client, mqChannelObject)
 				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(ok).To(BeFalse())
-			}).WithTimeout(2 * time.Minute).WithPolling(3 * time.Second).Should(Succeed())
+				g.Expect(ok).To(BeFalse(), "channel %s should be removed from MQ after CR delete", mqChannelObject)
+			}).WithTimeout(KubectlWaitDuration).WithPolling(3 * time.Second).Should(Succeed())
 		})
 	})
 
@@ -358,11 +361,11 @@ spec:
 		})
 
 		AfterEach(func() {
-			_ = exec.Command("kubectl", "delete", "channelauthrule", mqChannelAuthCRName, "-n", namespace, "--ignore-not-found").Run()
-			_ = exec.Command("kubectl", "delete", "authorityrecord", mqAuthorityCRName, "-n", namespace, "--ignore-not-found").Run()
-			_ = exec.Command("kubectl", "delete", "channel", mqChannelPrereqCRName, "-n", namespace, "--ignore-not-found").Run()
-			_ = exec.Command("kubectl", "delete", "queue", mqQueueCRName, "-n", namespace, "--ignore-not-found").Run()
-			_ = exec.Command("kubectl", "delete", "queuemanagerconnection", mqConnectionName, "-n", namespace, "--ignore-not-found").Run()
+			kubectlDeleteIgnoreNotFound("channelauthrule", mqChannelAuthCRName, namespace)
+			kubectlDeleteIgnoreNotFound("authorityrecord", mqAuthorityCRName, namespace)
+			kubectlDeleteIgnoreNotFound("channel", mqChannelPrereqCRName, namespace)
+			kubectlDeleteIgnoreNotFound("queue", mqQueueCRName, namespace)
+			kubectlDeleteIgnoreNotFound("queuemanagerconnection", mqConnectionName, namespace)
 		})
 
 		It("reconciles a ChannelAuthRule CR against the kind IBM MQ queue manager", func() {
@@ -389,6 +392,14 @@ spec:
     trptype: tcp
 `, mqChannelPrereqCRName, namespace, mqConnectionName, e2eChannelName)
 			Expect(kubectlApply(channelYAML)).To(Succeed())
+
+			Eventually(func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "channel", mqChannelPrereqCRName, "-n", namespace,
+					"-o", "jsonpath={.status.conditions[?(@.type==\"Synced\")].status}")
+				out, runErr := utils.Run(cmd)
+				g.Expect(runErr).NotTo(HaveOccurred())
+				g.Expect(out).To(Equal("True"), "Channel %s must be Synced before ChannelAuthRule admission", mqChannelPrereqCRName)
+			}).WithTimeout(3 * time.Minute).WithPolling(5 * time.Second).Should(Succeed())
 
 			carYAML := fmt.Sprintf(`apiVersion: messaging.kurator.dev/v1alpha1
 kind: ChannelAuthRule
@@ -419,13 +430,14 @@ spec:
 			Expect(err).NotTo(HaveOccurred())
 			Expect(ok).To(BeTrue())
 
-			Expect(kubectlDeleteWait("channelauthrule", mqChannelAuthCRName, namespace)).To(Succeed())
+			Expect(kubectlDeleteWait("channelauthrule", mqChannelAuthCRName, namespace)).To(Succeed(),
+				"ChannelAuthRule CR delete should complete within %s", kubectlWaitTimeout)
 
 			Eventually(func(g Gomega) {
 				ok, err := chlauthRuleExists(ctx, client, e2eChannelName)
 				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(ok).To(BeFalse())
-			}).WithTimeout(2 * time.Minute).WithPolling(3 * time.Second).Should(Succeed())
+				g.Expect(ok).To(BeFalse(), "CHLAUTH for %s should be removed from MQ after CR delete", e2eChannelName)
+			}).WithTimeout(KubectlWaitDuration).WithPolling(3 * time.Second).Should(Succeed())
 		})
 
 		It("reconciles an AuthorityRecord CR against the kind IBM MQ queue manager", func() {
@@ -488,13 +500,14 @@ spec:
 			Expect(err).NotTo(HaveOccurred())
 			Expect(ok).To(BeTrue())
 
-			Expect(kubectlDeleteWait("authorityrecord", mqAuthorityCRName, namespace)).To(Succeed())
+			Expect(kubectlDeleteWait("authorityrecord", mqAuthorityCRName, namespace)).To(Succeed(),
+				"AuthorityRecord CR delete should complete within %s", kubectlWaitTimeout)
 
 			Eventually(func(g Gomega) {
 				ok, err := authorityRecordExists(ctx, client, mqQueueObject, "QUEUE", "app")
 				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(ok).To(BeFalse())
-			}).WithTimeout(2 * time.Minute).WithPolling(3 * time.Second).Should(Succeed())
+				g.Expect(ok).To(BeFalse(), "AUTHREC for queue %s principal app should be removed after CR delete", mqQueueObject)
+			}).WithTimeout(KubectlWaitDuration).WithPolling(3 * time.Second).Should(Succeed())
 		})
 	})
 })
@@ -515,11 +528,4 @@ spec:
   credentialsSecretRef:
     name: mq-credentials
 `, mqConnectionName, namespace, envOr("KURATOR_E2E_MQ_QMGR", "QM1"))
-}
-
-func kubectlApply(manifest string) error {
-	cmd := exec.Command("kubectl", "apply", "-f", "-")
-	cmd.Stdin = strings.NewReader(manifest)
-	_, err := utils.Run(cmd)
-	return err
 }
