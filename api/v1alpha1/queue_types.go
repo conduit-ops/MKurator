@@ -92,5 +92,5 @@ type QueueList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&Queue{}, &QueueList{})
+	Register(&Queue{}, &QueueList{})
 }

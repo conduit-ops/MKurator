@@ -87,5 +87,5 @@ type ChannelList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&Channel{}, &ChannelList{})
+	Register(&Channel{}, &ChannelList{})
 }

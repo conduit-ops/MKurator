@@ -118,5 +118,5 @@ type QueueManagerConnectionList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&QueueManagerConnection{}, &QueueManagerConnectionList{})
+	Register(&QueueManagerConnection{}, &QueueManagerConnectionList{})
 }

@@ -99,5 +99,5 @@ type AuthorityRecordList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&AuthorityRecord{}, &AuthorityRecordList{})
+	Register(&AuthorityRecord{}, &AuthorityRecordList{})
 }
