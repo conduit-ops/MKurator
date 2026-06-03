@@ -10,18 +10,30 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/konih/kurator/test/utils"
 
 	"github.com/konih/kurator/internal/adapter/mqrest"
 	"github.com/konih/kurator/internal/mqadmin"
 )
 
 const (
-	e2eChannelName = "DEV.APP.SVRCONN.0TLS"
+	e2eChannelName           = "DEV.APP.SVRCONN.0TLS"
+	kubectlDeleteWaitTimeout = "3m"
 )
+
+// kubectlDeleteWait deletes a namespaced resource and blocks until removal or timeout.
+func kubectlDeleteWait(resource, name, ns string) error {
+	cmd := exec.Command("kubectl", "delete", resource, name, "-n", ns,
+		"--wait=true", "--timeout="+kubectlDeleteWaitTimeout)
+	_, err := utils.Run(cmd)
+	return err
+}
 
 // mqE2EEnabled reports whether IBM MQ integration tests should run.
 func mqE2EEnabled() bool {

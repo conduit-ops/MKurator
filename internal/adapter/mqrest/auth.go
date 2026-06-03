@@ -233,6 +233,10 @@ func buildSetChannelAuthMQSC(spec mqadmin.ChannelAuthSpec, action string) (strin
 	if spec.Address != "" {
 		parts = append(parts, fmt.Sprintf("ADDRESS('%s')", mqscQuote(spec.Address)))
 	}
+	if action == "REMOVE" {
+		parts = append(parts, "ACTION(REMOVE)")
+		return strings.Join(parts, " "), nil
+	}
 	if spec.UserSource != "" {
 		parts = append(parts, fmt.Sprintf("USERSRC(%s)", spec.UserSource))
 	}

@@ -40,6 +40,11 @@ func (v *channelAuthRuleCustomValidator) ValidateUpdate(
 	_ *messagingv1alpha1.ChannelAuthRule,
 	newRule *messagingv1alpha1.ChannelAuthRule,
 ) (admission.Warnings, error) {
+	// Finalizer removal during delete only changes metadata; skip spec checks so
+	// deletion is not blocked when the managed Channel CR is already gone.
+	if newRule.DeletionTimestamp != nil {
+		return nil, nil
+	}
 	return validateCreateUpdate(ctx, v.Client, newRule, v.validateRule, validation.ChannelAuthRuleInvalid)
 }
 
