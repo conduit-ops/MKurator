@@ -18,3 +18,14 @@ func TestAdmissionResult_WithErrors(t *testing.T) {
 		t.Fatal("expected validation error")
 	}
 }
+
+func TestAdmissionResult_NoErrors(t *testing.T) {
+	t.Parallel()
+	warnings, err := admissionResult([]string{"deprecated field"}, nil, validation.QueueInvalid, "orders")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(warnings) != 1 || warnings[0] != "deprecated field" {
+		t.Fatalf("warnings = %v", warnings)
+	}
+}

@@ -259,6 +259,14 @@ func TestClientFactory_BuildConfigInsecureTLS(t *testing.T) {
 	}
 }
 
+func TestCaPoolFromSecretMissingKey(t *testing.T) {
+	t.Parallel()
+	_, err := caPoolFromSecret(map[string][]byte{"other": []byte("x")})
+	if err == nil {
+		t.Fatal("expected error when CA PEM key is missing")
+	}
+}
+
 func TestClientFactory_CacheKeyMissingCredSecret(t *testing.T) {
 	ctx := context.Background()
 	ns := "mkurator-system"

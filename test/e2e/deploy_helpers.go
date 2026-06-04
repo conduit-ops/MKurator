@@ -108,6 +108,9 @@ func undeployOperatorForE2E() {
 
 func taskEnv() []string {
 	env := append(os.Environ(), fmt.Sprintf("DOCKER_IMAGE=%s", managerImage))
+	if e2eDeployMode() == "helm" {
+		env = append(env, "KURATOR_E2E_DEPLOY=helm")
+	}
 	kc := os.Getenv("KUBECONFIG")
 	if kc == "" {
 		if projectDir, err := utils.GetProjectDir(); err == nil {

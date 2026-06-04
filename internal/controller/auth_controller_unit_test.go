@@ -821,3 +821,33 @@ func TestAuthorityRecordReconciler_NotFoundCreates(t *testing.T) {
 		t.Fatalf("Reconcile: %v", err)
 	}
 }
+
+func TestAuthorityRecordReconciler_ReconcileNotFound(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	s := unitSchemeOrFatal(t)
+	cl := fake.NewClientBuilder().WithScheme(s).Build()
+	rec := &AuthorityRecordReconciler{Client: cl, Scheme: s}
+	result, err := rec.Reconcile(ctx, ctrl.Request{
+		NamespacedName: types.NamespacedName{Namespace: "mkurator-system", Name: "missing"},
+	})
+	if err != nil {
+		t.Fatalf("Reconcile: %v", err)
+	}
+	_ = result
+}
+
+func TestChannelAuthRuleReconciler_ReconcileNotFound(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	s := unitSchemeOrFatal(t)
+	cl := fake.NewClientBuilder().WithScheme(s).Build()
+	rec := &ChannelAuthRuleReconciler{Client: cl, Scheme: s}
+	result, err := rec.Reconcile(ctx, ctrl.Request{
+		NamespacedName: types.NamespacedName{Namespace: "mkurator-system", Name: "missing"},
+	})
+	if err != nil {
+		t.Fatalf("Reconcile: %v", err)
+	}
+	_ = result
+}

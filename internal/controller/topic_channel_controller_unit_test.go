@@ -656,6 +656,36 @@ func TestTopicReconciler_TransientError(t *testing.T) {
 	}
 }
 
+func TestTopicReconciler_ReconcileNotFound(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	s := unitSchemeOrFatal(t)
+	cl := fake.NewClientBuilder().WithScheme(s).Build()
+	rec := &TopicReconciler{Client: cl, Scheme: s}
+	result, err := rec.Reconcile(ctx, ctrl.Request{
+		NamespacedName: types.NamespacedName{Namespace: "mkurator-system", Name: "missing"},
+	})
+	if err != nil {
+		t.Fatalf("Reconcile: %v", err)
+	}
+	_ = result
+}
+
+func TestChannelReconciler_ReconcileNotFound(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	s := unitSchemeOrFatal(t)
+	cl := fake.NewClientBuilder().WithScheme(s).Build()
+	rec := &ChannelReconciler{Client: cl, Scheme: s}
+	result, err := rec.Reconcile(ctx, ctrl.Request{
+		NamespacedName: types.NamespacedName{Namespace: "mkurator-system", Name: "missing"},
+	})
+	if err != nil {
+		t.Fatalf("Reconcile: %v", err)
+	}
+	_ = result
+}
+
 func TestChannelReconciler_TransientError(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()

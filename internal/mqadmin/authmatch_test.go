@@ -110,6 +110,14 @@ func TestAuthoritySetsEqualDifferentLengths(t *testing.T) {
 	}
 }
 
+func TestNormalizeAuthoritySetDropsEmpty(t *testing.T) {
+	t.Parallel()
+	got := normalizeAuthoritySet([]string{" GET ", "", "put"})
+	if len(got) != 2 || got[0] != "GET" || got[1] != "PUT" {
+		t.Fatalf("normalizeAuthoritySet() = %v", got)
+	}
+}
+
 func TestAuthorityNeedsUpdate(t *testing.T) {
 	t.Parallel()
 	if !AuthorityNeedsUpdate(AuthoritySpec{Authorities: []string{"GET"}}, nil) {

@@ -170,10 +170,15 @@ tasks:
     deps: [helm:sync-crds]
     cmds:
       - |
+        E2E_VALUES=""
+        if [ "${KURATOR_E2E_DEPLOY:-}" = "helm" ]; then
+          E2E_VALUES="-f ./charts/mkurator/samples/values-e2e.yaml"
+        fi
         helm upgrade --install mkurator ./charts/mkurator \
           --namespace mkurator-system \
           --create-namespace \
           -f ./charts/mkurator/samples/values-kind.yaml \
+          ${E2E_VALUES} \
           --set image.repository={{.DOCKER_IMAGE | splitList ":" | first}} \
           --set image.tag={{.DOCKER_IMAGE | splitList ":" | last}} \
           --wait --timeout 5m
@@ -189,10 +194,15 @@ tasks:
           kind load docker-image {{.DOCKER_IMAGE}} --name "{{.CLUSTER_NAME}}"
         fi
       - |
+        E2E_VALUES=""
+        if [ "${KURATOR_E2E_DEPLOY:-}" = "helm" ]; then
+          E2E_VALUES="-f ./charts/mkurator/samples/values-e2e.yaml"
+        fi
         helm upgrade --install mkurator ./charts/mkurator \
           --namespace mkurator-system \
           --create-namespace \
           -f ./charts/mkurator/samples/values-kind.yaml \
+          ${E2E_VALUES} \
           --set image.repository={{.DOCKER_IMAGE | splitList ":" | first}} \
           --set image.tag={{.DOCKER_IMAGE | splitList ":" | last}} \
           --wait --timeout 5m

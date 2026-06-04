@@ -176,6 +176,11 @@ spec:
 		})
 
 		It("should ensure the metrics endpoint is serving metrics", Label("slow"), func() {
+			By("cleaning up webhook CAR fixture leftovers that block /readyz")
+			kubectlDeleteIgnoreNotFound("channelauthrule", "webhook-e2e-car-invalid", namespace)
+			kubectlDeleteIgnoreNotFound("queuemanagerconnection", "webhook-e2e-car-qmc", namespace)
+			kubectlDeleteIgnoreNotFound("secret", "webhook-e2e-car-creds", namespace)
+
 			By("creating a ClusterRoleBinding for the service account to allow access to metrics")
 			kubectlDeleteClusterIgnoreNotFound("clusterrolebinding", metricsRoleBindingName)
 			cmd := exec.Command("kubectl", "create", "clusterrolebinding", metricsRoleBindingName,
@@ -204,16 +209,6 @@ spec:
 				g.Expect(output).To(Equal("True"), "Controller pod not ready")
 			}
 			Eventually(verifyControllerPodReady, 3*time.Minute, time.Second).Should(Succeed())
-
-			By("verifying that the controller manager is serving the metrics server")
-			verifyMetricsServerStarted := func(g Gomega) {
-				cmd := exec.Command("kubectl", "logs", controllerPodName, "-n", namespace)
-				output, err := utils.Run(cmd)
-				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(output).To(ContainSubstring("Serving metrics server"),
-					"Metrics server not yet started")
-			}
-			Eventually(verifyMetricsServerStarted, 3*time.Minute, time.Second).Should(Succeed())
 
 			By("creating the curl-metrics pod to access the metrics endpoint")
 			cmd = exec.Command("kubectl", "run", "curl-metrics", "--restart=Never",

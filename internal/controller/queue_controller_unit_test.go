@@ -556,6 +556,36 @@ func TestQueueManagerConnectionReconciler_TransientPingFailure(t *testing.T) {
 	}
 }
 
+func TestQueueReconciler_ReconcileNotFound(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	s := unitSchemeOrFatal(t)
+	cl := fake.NewClientBuilder().WithScheme(s).Build()
+	rec := &QueueReconciler{Client: cl, Scheme: s}
+	result, err := rec.Reconcile(ctx, ctrl.Request{
+		NamespacedName: types.NamespacedName{Namespace: "mkurator-system", Name: "missing"},
+	})
+	if err != nil {
+		t.Fatalf("Reconcile: %v", err)
+	}
+	_ = result
+}
+
+func TestQueueManagerConnectionReconciler_ReconcileNotFound(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	s := unitSchemeOrFatal(t)
+	cl := fake.NewClientBuilder().WithScheme(s).Build()
+	rec := &QueueManagerConnectionReconciler{Client: cl, Scheme: s}
+	result, err := rec.Reconcile(ctx, ctrl.Request{
+		NamespacedName: types.NamespacedName{Namespace: "mkurator-system", Name: "missing"},
+	})
+	if err != nil {
+		t.Fatalf("Reconcile: %v", err)
+	}
+	_ = result
+}
+
 func readyConnForUnit(ns string) *messagingv1alpha1.QueueManagerConnection {
 	return &messagingv1alpha1.QueueManagerConnection{
 		ObjectMeta: metav1.ObjectMeta{Name: "qm1", Namespace: ns},

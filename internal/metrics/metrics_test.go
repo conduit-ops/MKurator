@@ -33,6 +33,13 @@ func TestRecordMQOperation(t *testing.T) {
 	if after != before+1 {
 		t.Fatalf("mq op count: before=%v after=%v", before, after)
 	}
+
+	errBefore := counterValue(t, MQOperationsTotal, MQOpDefineQueue, ResultError)
+	RecordMQOperation(MQOpDefineQueue, errors.New("mqweb down"))
+	errAfter := counterValue(t, MQOperationsTotal, MQOpDefineQueue, ResultError)
+	if errAfter != errBefore+1 {
+		t.Fatalf("mq op error count: before=%v after=%v", errBefore, errAfter)
+	}
 }
 
 func counterValue(t *testing.T, cv *prometheus.CounterVec, labels ...string) float64 {

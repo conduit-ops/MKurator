@@ -1,0 +1,7 @@
+# Helm overrides for CI/local e2e (KURATOR_E2E_DEPLOY=helm).
+# Merged with values-kind.yaml by deploy:helm:operator.
+# Info-level JSON logs keep startup lines in kubectl logs (metrics e2e checks rollout).
+
+logging:
+  level: info
+  format: json
