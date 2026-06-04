@@ -30,6 +30,35 @@ func TestRedactHandlerWithSlogLogger(t *testing.T) {
 	}
 }
 
+func TestRedactHandlerSensitiveKeys(t *testing.T) {
+	t.Parallel()
+	keys := []string{
+		"password", "passwd", "token", "authorization", "secret",
+		"credentials", "csrf", "apikey", "api_key",
+	}
+	for _, key := range keys {
+		t.Run(key, func(t *testing.T) {
+			t.Parallel()
+			var buf bytes.Buffer
+			handler, err := logging.NewHandler(logging.Config{
+				Level:  logging.LevelInfo,
+				Format: logging.FormatJSON,
+			}, &buf)
+			if err != nil {
+				t.Fatalf("NewHandler: %v", err)
+			}
+			slog.New(handler).Info("event", slog.String(key, "leak"))
+			var entry map[string]any
+			if err := json.Unmarshal(buf.Bytes(), &entry); err != nil {
+				t.Fatalf("unmarshal: %v", err)
+			}
+			if entry[key] != "[REDACTED]" {
+				t.Fatalf("%s: got %v", key, entry[key])
+			}
+		})
+	}
+}
+
 func TestRedactHandlerWithAttrsAndGroup(t *testing.T) {
 	var buf bytes.Buffer
 	handler, err := logging.NewHandler(logging.Config{

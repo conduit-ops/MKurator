@@ -4,10 +4,17 @@ import "testing"
 
 func TestNormalizeQueueType(t *testing.T) {
 	t.Parallel()
-	if got := NormalizeQueueType(""); got != QueueTypeLocal {
-		t.Fatalf("empty: got %q", got)
+	tests := []struct {
+		in   QueueType
+		want QueueType
+	}{
+		{in: "", want: QueueTypeLocal},
+		{in: QueueTypeAlias, want: QueueTypeAlias},
+		{in: QueueTypeRemote, want: QueueTypeRemote},
 	}
-	if got := NormalizeQueueType(QueueTypeRemote); got != QueueTypeRemote {
-		t.Fatalf("remote: got %q", got)
+	for _, tt := range tests {
+		if got := NormalizeQueueType(tt.in); got != tt.want {
+			t.Fatalf("NormalizeQueueType(%q) = %q, want %q", tt.in, got, tt.want)
+		}
 	}
 }

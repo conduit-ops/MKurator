@@ -215,6 +215,36 @@ func TestValidateQueueManagerConnectionInsecureTLS(t *testing.T) {
 	}
 }
 
+func TestValidateQueueManagerConnectionDeleteMultipleDependents(t *testing.T) {
+	t.Parallel()
+	scheme := runtime.NewScheme()
+	_ = messagingv1alpha1.AddToScheme(scheme)
+	conn := sampleConnection("ns", "qm1")
+	queue := &messagingv1alpha1.Queue{
+		ObjectMeta: metav1.ObjectMeta{Name: "orders", Namespace: "ns"},
+		Spec: messagingv1alpha1.QueueSpec{
+			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+			QueueName:     "APP.ORDERS",
+		},
+	}
+	topic := &messagingv1alpha1.Topic{
+		ObjectMeta: metav1.ObjectMeta{Name: "events", Namespace: "ns"},
+		Spec: messagingv1alpha1.TopicSpec{
+			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+			TopicName:     "RETAIL.ORDERS",
+		},
+	}
+	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(conn, queue, topic).Build()
+	errs := ValidateQueueManagerConnectionDelete(context.Background(), cl, conn)
+	if len(errs) == 0 {
+		t.Fatal("expected delete blocked")
+	}
+	detail := errs[0].Detail
+	if !strings.Contains(detail, "Queue") || !strings.Contains(detail, "Topic") {
+		t.Fatalf("detail = %q", detail)
+	}
+}
+
 func TestValidateQueueManagerConnectionCASecret(t *testing.T) {
 	t.Parallel()
 	scheme := runtime.NewScheme()
