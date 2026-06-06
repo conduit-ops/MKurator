@@ -12,7 +12,7 @@ Please report suspected vulnerabilities **privately** — do not open a public
 issue for security problems.
 
 - Use **GitHub Security Advisories** ("Report a vulnerability") on this
-  repository, or contact the maintainer privately.
+  repository, or email **konrad.heimel@gmail.com** privately.
 - Include affected version/commit, a description, reproduction steps, and impact.
 - You will receive an acknowledgement; fixes for confirmed issues are prioritised
   and disclosed once a fix is available.
@@ -38,6 +38,12 @@ branch receives fixes. The API contract may change between alpha releases.
 - **Supply chain**: pinned tooling and CI action SHAs, committed `go.sum`,
   `govulncheck` (PR + scheduled), and Trivy image scanning. See
   [docs/CICD.md](docs/CICD.md).
+
+## Community
+
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) — community behavior standards
+- [GOVERNANCE.md](GOVERNANCE.md) — roles, decision making, security contact
+- [CONTRIBUTING.md](CONTRIBUTING.md) — how to contribute (includes DCO)
 
 ## Handling credentials in development
 
