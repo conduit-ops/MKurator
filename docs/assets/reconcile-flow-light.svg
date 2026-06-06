@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 220" role="img" aria-label="MKurator reconcile flow">
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#334155"/>
+    </marker>
+    <style>
+      .box { fill: #f8fafc; stroke: #334155; stroke-width: 2; rx: 8; }
+      .box-accent { fill: #e0f2fe; stroke: #0369a1; stroke-width: 2; rx: 8; }
+      .box-mq { fill: #fef3c7; stroke: #b45309; stroke-width: 2; rx: 8; }
+      .label { font: 600 14px system-ui, sans-serif; fill: #0f172a; }
+      .sub { font: 12px system-ui, sans-serif; fill: #475569; }
+      .arrow { stroke: #334155; stroke-width: 2; fill: none; marker-end: url(#arrow); }
+    </style>
+  </defs>
+  <rect class="box" x="20" y="60" width="130" height="100"/>
+  <text class="label" x="85" y="95" text-anchor="middle">Custom</text>
+  <text class="label" x="85" y="115" text-anchor="middle">Resources</text>
+  <text class="sub" x="85" y="138" text-anchor="middle">Queue, Topic, &</text>
+
+  <line class="arrow" x1="150" y1="110" x2="195" y2="110"/>
+
+  <rect class="box-accent" x="200" y="60" width="150" height="100"/>
+  <text class="label" x="275" y="95" text-anchor="middle">Controller</text>
+  <text class="label" x="275" y="115" text-anchor="middle">Reconciler</text>
+  <text class="sub" x="275" y="138" text-anchor="middle">desired state</text>
+
+  <line class="arrow" x1="350" y1="110" x2="395" y2="110"/>
+
+  <rect class="box-accent" x="400" y="60" width="150" height="100"/>
+  <text class="label" x="475" y="95" text-anchor="middle">mqrest</text>
+  <text class="label" x="475" y="115" text-anchor="middle">adapter</text>
+  <text class="sub" x="475" y="138" text-anchor="middle">HTTPS client</text>
+
+  <line class="arrow" x1="550" y1="110" x2="595" y2="110"/>
+
+  <rect class="box-mq" x="600" y="60" width="130" height="100"/>
+  <text class="label" x="665" y="95" text-anchor="middle">mqweb</text>
+  <text class="label" x="665" y="115" text-anchor="middle">REST API</text>
+  <text class="sub" x="665" y="138" text-anchor="middle">IBM MQ admin</text>
+
+  <line class="arrow" x1="730" y1="110" x2="775" y2="110"/>
+
+  <rect class="box-mq" x="780" y="60" width="120" height="100"/>
+  <text class="label" x="840" y="105" text-anchor="middle">Queue</text>
+  <text class="label" x="840" y="125" text-anchor="middle">Manager</text>
+</svg>

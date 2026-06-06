@@ -5,13 +5,18 @@
 # MKurator
 
 [![CI](https://github.com/konih/mkurator/actions/workflows/ci.yaml/badge.svg)](https://github.com/konih/mkurator/actions/workflows/ci.yaml)
+[![Preflight](https://github.com/konih/mkurator/actions/workflows/preflight.yaml/badge.svg)](https://github.com/konih/mkurator/actions/workflows/preflight.yaml)
 [![E2E](https://github.com/konih/mkurator/actions/workflows/e2e.yaml/badge.svg)](https://github.com/konih/mkurator/actions/workflows/e2e.yaml)
+[![Docs](https://github.com/konih/mkurator/actions/workflows/docs.yaml/badge.svg)](https://github.com/konih/mkurator/actions/workflows/docs.yaml)
+[![CodeQL](https://github.com/konih/mkurator/actions/workflows/codeql.yaml/badge.svg)](https://github.com/konih/mkurator/actions/workflows/codeql.yaml)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/konih/mkurator/badge)](https://securityscorecards.dev/viewer/?uri=github.com/konih/mkurator)
 [![License: MIT](https://img.shields.io/github/license/konih/mkurator)](https://github.com/konih/mkurator/blob/main/LICENSE)
+[![Release](https://img.shields.io/github/v/release/konih/mkurator)](https://github.com/konih/mkurator/releases)
 [![codecov](https://codecov.io/gh/konih/mkurator/graph/badge.svg)](https://codecov.io/gh/konih/mkurator)
 [![Go](https://img.shields.io/github/go-mod/go-version/konih/mkurator)](https://pkg.go.dev/github.com/konih/mkurator)
 [![Go Reference](https://pkg.go.dev/badge/github.com/konih/mkurator.svg)](https://pkg.go.dev/github.com/konih/mkurator)
 [![Go Report Card](https://goreportcard.com/badge/github.com/konih/mkurator)](https://goreportcard.com/report/github.com/konih/mkurator)
-[![Release](https://img.shields.io/github/v/release/konih/mkurator)](https://github.com/konih/mkurator/releases)
+[![Container](https://img.shields.io/badge/ghcr.io-konih%2Fmkurator-2496ED?logo=docker&logoColor=white)](https://github.com/konih/mkurator/pkgs/container/mkurator)
 
 A Kubernetes operator for declaratively managing **resources on an existing
 IBM MQ Queue Manager** — queues, topics, SVRCONN channels; users/authorities and
@@ -68,6 +73,19 @@ Latest tagged release: [GitHub Releases](https://github.com/konih/mkurator/relea
 
 It does **not** deploy or operate Queue Manager installations; the Queue
 Manager is assumed to already exist and expose `mqweb`.
+
+## How it works
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/reconcile-flow-dark.svg">
+  <img src="docs/assets/reconcile-flow-light.svg" alt="CR reconciler to mqweb to queue manager" width="920">
+</picture>
+
+You declare desired MQ objects as Kubernetes custom resources. The operator watches those CRs,
+validates specs at admission, and reconcilers call the **mqrest** adapter to execute MQSC through
+**mqweb** on your queue manager. Status conditions report success, drift correction, and errors.
+Full design: [ARCHITECTURE.md](docs/ARCHITECTURE.md) · published docs:
+[konih.github.io/MKurator](https://konih.github.io/MKurator/).
 
 ## Repository structure
 
@@ -142,20 +160,16 @@ Verify reconciliation with [docs/IBM_MQ_101.md](docs/IBM_MQ_101.md) (`runmqsc`, 
 
 ## Documentation
 
-Full index with paths by role: **[docs/README.md](docs/README.md)**.
+**Published site:** [konih.github.io/MKurator](https://konih.github.io/MKurator/) — install guides,
+examples, ADRs, and engineering standards.
 
 | | Doc |
 |---|-----|
-| 🎯 **Use MKurator** | [Install and use](docs/INSTALL_AND_USE.md) · [Upgrade](docs/UPGRADE.md) · [Metrics](docs/OBSERVABILITY.md) · [Logging](docs/LOGGING.md) · [Sample YAML](config/samples/README.md) · [Helm chart](charts/mkurator/README.md) |
-| 🛠️ **Develop locally** | [Development guide](docs/DEVELOPMENT.md) · [Contributing](docs/CONTRIBUTING.md) · [MQ on kind](docs/IBM_MQ_101.md) · [Platform (kind/Terraform/MQ)](hack/kind-cluster/README.md) |
-| 🏗️ **Design** | [Architecture](docs/ARCHITECTURE.md) · [Attribute reconciliation](docs/ATTRIBUTE_RECONCILIATION.md) · [ADRs](docs/adr/) |
-| 📋 **Project** | [Roadmap](docs/ROADMAP.md) · [CI/CD](docs/CICD.md) · [Release guide](docs/RELEASE.md) · [NFRs](docs/NON_FUNCTIONAL_REQUIREMENTS.md) · [Security](SECURITY.md) |
-| 📚 **IBM MQ reference** | [Objects (research)](docs/IBM_MQ_OBJECTS.md) · [REST API](docs/IBM_MQ_REST_API.md) · [Schemas](docs/schemas/README.md) |
+| 🎯 **Use MKurator** | [Quick start](docs/QUICKSTART.md) · [Install and use](docs/INSTALL_AND_USE.md) · [FAQ](docs/FAQ.md) · [Glossary](docs/GLOSSARY.md) |
+| 🛠️ **Develop** | [Development guide](docs/DEVELOPMENT.md) · [Contributing](CONTRIBUTING.md) · [CI/CD](docs/CICD.md) |
+| 🏗️ **Design** | [Architecture](docs/ARCHITECTURE.md) · [ADRs](docs/adr/) · [Changelog](CHANGELOG.md) |
 
-Contributors: [CONTRIBUTING.md](CONTRIBUTING.md) (standards map, DCO) ·
-[docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) (commit format) ·
-[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) (local workflow) ·
-[AGENTS.md](AGENTS.md) (Go conventions and agent entry point).
+Full index: **[docs/README.md](docs/README.md)**.
 
 ## Community
 

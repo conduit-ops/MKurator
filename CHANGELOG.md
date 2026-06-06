@@ -9,7 +9,12 @@ on the default branch using [git-cliff](https://git-cliff.org/).
 
 ## [Unreleased]
 
-## [0.6.0](https://github.com/konih/mkurator/compare/v0.5.3..v0.6.0) - 2026-06-03
+### Added
+
+- OSS maturity: governance files, published MkDocs site, CodeQL/Scorecard/audit-rbac CI, release
+  attestations, engineering standards split, go-arch-lint, sample CR contract tests, FAQ, glossary,
+  and `task scrub` pre-commit gate.
+(https://github.com/konih/mkurator/compare/v0.5.3..v0.6.0) - 2026-06-03
 
 ### Bug Fixes
 

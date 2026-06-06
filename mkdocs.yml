@@ -44,6 +44,8 @@ nav:
   - Getting Started:
       - Quick start: QUICKSTART.md
       - Install and use: INSTALL_AND_USE.md
+      - FAQ: FAQ.md
+      - Glossary: GLOSSARY.md
       - Upgrade: UPGRADE.md
       - Development setup: DEVELOPMENT.md
   - Operator Manual:
