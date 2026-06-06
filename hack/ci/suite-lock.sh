@@ -16,7 +16,7 @@ fi
 SUITE_LOCK_DIR="${SUITE_LOCK_ROOT}/hack/kind-cluster/.state/locks"
 
 # Shared lock for e2e and integration (kind + Docker MQ conflicts).
-EXCLUSIVE_TEST_LOCK_NAME="exclusive-test"
+export EXCLUSIVE_TEST_LOCK_NAME="exclusive-test"
 
 _SUITE_LOCK_PATH=""
 _SUITE_LOCK_NAME=""
