@@ -23,6 +23,13 @@ repos:
 
   - repo: local
     hooks:
+      - id: scrub
+        name: scrub forbidden strings (staged)
+        entry: task scrub
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
       - id: go-format
         name: go format (gofmt, goimports, golines)
         entry: task format

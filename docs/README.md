@@ -3,6 +3,8 @@
 | | Start here |
 |---|------------|
 | 🎯 | Install and manage MQ objects on your queue manager → [INSTALL_AND_USE.md](INSTALL_AND_USE.md) |
+| 🎯 | FAQ and glossary → [FAQ.md](FAQ.md) · [GLOSSARY.md](GLOSSARY.md) |
+| 📖 | Published documentation site → [konih.github.io/MKurator](https://konih.github.io/MKurator/) |
 | 🛠️ | Install dev tools → [LOCAL_SETUP.md](LOCAL_SETUP.md) |
 | 🛠️ | Hack on the operator locally → [DEVELOPMENT.md](DEVELOPMENT.md) |
 | 🛠️ | What to regenerate / test after a code change → [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md) |
@@ -20,6 +22,8 @@
 | | Document | Covers |
 |---|----------|--------|
 | 🎯 | [INSTALL_AND_USE.md](INSTALL_AND_USE.md) | Install, connect, CRs, kubectl diagnostics, upgrade, uninstall |
+| 🎯 | [FAQ.md](FAQ.md) | Common questions (QMC, drift, suspend, webhooks) |
+| 🎯 | [GLOSSARY.md](GLOSSARY.md) | MQ and operator terminology |
 | 🎯 | [UPGRADE.md](UPGRADE.md) | Upgrade operator, CRDs, webhooks, cert-manager |
 | 🎯 | [OBSERVABILITY.md](OBSERVABILITY.md) | Prometheus metrics, ServiceMonitor, RBAC |
 | 🔧 | [../config/samples/README.md](../config/samples/README.md) | Annotated sample Secret, Connection, Queue, Topic, Channel, auth YAML |

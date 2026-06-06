@@ -30,7 +30,7 @@ duplicate prose across them.
 **Merge policy:** `main` requires green **`preflight`** and **`CI`** checks.
 
 **Local preflight** (before opening a PR): `task verify` · `task lint` · `task test:run` ·
-`gitleaks protect --staged --no-banner`. After Batch 6: also `task scrub`.
+`task scrub` · `gitleaks protect --staged --no-banner`.
 
 ## Expectations
 

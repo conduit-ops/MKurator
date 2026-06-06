@@ -1,0 +1,9 @@
+rewe
+titiseven
+prod165
+atlassian
+code\.dev
+kollect
+kollect\.dev
+github\.com/konih/kollect
+ghcr\.io/konih/kollect
