@@ -1,9 +1,11 @@
-# Contributing
+# Commit conventions
 
-Developer guidelines for **MKurator**: how we work on the codebase, write commit
-messages, and keep release notes accurate. For local setup and commands see
-[DEVELOPMENT.md](DEVELOPMENT.md); for Go style, testing, and agent workflow see
-[AGENTS.md](../AGENTS.md).
+> **Process overview** (standards map, DCO, merge policy, expectations) →
+> [../CONTRIBUTING.md](../CONTRIBUTING.md)
+
+Developer guidelines for **MKurator**: commit message format, gitmoji, changelog, and
+release notes. For local setup see [DEVELOPMENT.md](DEVELOPMENT.md); for Go style,
+testing, and agent workflow see [AGENTS.md](../AGENTS.md).
 
 Doc index: [README.md](README.md)
 
@@ -11,7 +13,6 @@ Doc index: [README.md](README.md)
 
 | | Section |
 |---|---------|
-| 📋 | [Expectations](#expectations) |
 | ✉️ | [Commit message format](#commit-message-format) |
 | 🏷️ | [Types and scopes](#types-and-scopes) |
 | 😀 | [Gitmoji](#gitmoji) |
@@ -19,27 +20,6 @@ Doc index: [README.md](README.md)
 | 📝 | [Examples](#examples) |
 | 📰 | [Changelog and releases](#changelog-and-releases) |
 | ✅ | [Before you open a PR or push](#before-you-open-a-pr-or-push) |
-
-## Expectations
-
-- **One logical change per commit** (or per PR). The tree should build, lint, and
-  pass unit/envtest at each commit you share.
-- **Small, reviewable diffs** over large drive-by refactors. Match existing
-  patterns in the package you touch.
-- **Tests with behaviour changes** — see [DEVELOPMENT.md#test-tiers](DEVELOPMENT.md#test-tiers)
-  and [AGENTS.md](../AGENTS.md#testing-strategy). A fix or feature is not done
-  until the right tier is updated.
-- **Generated artifacts stay fresh** — run `task generate && task manifests` when
-  APIs or kubebuilder markers change, then `task verify` before pushing.
-- **Sample CR YAML** — edit [`config/samples/`](../config/samples/) first, then
-  `task samples:sync` so [`charts/mkurator/samples/resources/`](../charts/mkurator/samples/resources/)
-  stays in sync (`task verify` checks both).
-- **No secrets in git** — credentials belong in cluster Secrets, not commits or
-  logs. pre-commit runs gitleaks; do not routinely use `git commit --no-verify`
-  (see [AGENTS.md](../AGENTS.md#pre-commit-and-skipping-hooks-no-verify)).
-
-Personal project: no JIRA keys in subjects. Use English for commit messages and
-user-facing docs.
 
 ## Commit message format
 
@@ -216,18 +196,19 @@ skipped ([`cliff.toml`](../cliff.toml)).
 
 ## Before you open a PR or push
 
+See [../CONTRIBUTING.md](../CONTRIBUTING.md) for the full preflight checklist and merge policy.
+Minimum before push:
+
 1. `task verify` — CRDs, RBAC, deepcopy, mocks are up to date.
 2. `task lint` — golangci-lint clean.
 3. `task test:run` — unit + envtest green (`-race`).
-4. Commit message follows [commit message format](#commit-message-format).
-
-pre-commit runs formatting, lint, and `task verify` on commit; CI runs the same
-checks on the PR.
+4. Commit message follows [commit message format](#commit-message-format) with DCO sign-off when able.
 
 ## Further reading
 
 | Doc | Topic |
 |-----|--------|
+| [../CONTRIBUTING.md](../CONTRIBUTING.md) | Standards map, DCO, code review |
 | [DEVELOPMENT.md](DEVELOPMENT.md) | Local setup, Task commands, test tiers |
 | [AGENTS.md](../AGENTS.md) | Go conventions, codegen, CI parity |
 | [CICD.md](CICD.md) | Pipeline and release job |

@@ -11,6 +11,9 @@
 | 🏗️ | Manager, reconcilers, webhooks → [OPERATOR_RUNTIME.md](OPERATOR_RUNTIME.md) |
 | 🤖 | AI agent conventions and workflow → [../AGENTS.md](../AGENTS.md) |
 | ✉️ | Commit format (Conventional Commits + gitmoji) → [CONTRIBUTING.md](CONTRIBUTING.md) |
+| 🤝 | Contributing, DCO, standards map → [../CONTRIBUTING.md](../CONTRIBUTING.md) |
+| 📜 | Code of Conduct → [../CODE_OF_CONDUCT.md](../CODE_OF_CONDUCT.md) |
+| 🏛️ | Governance → [../GOVERNANCE.md](../GOVERNANCE.md) |
 
 ## All docs
 

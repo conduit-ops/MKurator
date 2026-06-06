@@ -152,9 +152,20 @@ Full index with paths by role: **[docs/README.md](docs/README.md)**.
 | 📋 **Project** | [Roadmap](docs/ROADMAP.md) · [CI/CD](docs/CICD.md) · [Release guide](docs/RELEASE.md) · [NFRs](docs/NON_FUNCTIONAL_REQUIREMENTS.md) · [Security](SECURITY.md) |
 | 📚 **IBM MQ reference** | [Objects (research)](docs/IBM_MQ_OBJECTS.md) · [REST API](docs/IBM_MQ_REST_API.md) · [Schemas](docs/schemas/README.md) |
 
-Contributors: [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) (guidelines, commits,
-gitmoji) · [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) (local workflow) ·
+Contributors: [CONTRIBUTING.md](CONTRIBUTING.md) (standards map, DCO) ·
+[docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) (commit format) ·
+[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) (local workflow) ·
 [AGENTS.md](AGENTS.md) (Go conventions and agent entry point).
+
+## Community
+
+| | Link |
+|---|------|
+| Contributing | [CONTRIBUTING.md](CONTRIBUTING.md) |
+| Code of Conduct | [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) |
+| Governance | [GOVERNANCE.md](GOVERNANCE.md) |
+| Security | [SECURITY.md](SECURITY.md) |
+| Changelog | [CHANGELOG.md](CHANGELOG.md) |
 
 ## License
 
