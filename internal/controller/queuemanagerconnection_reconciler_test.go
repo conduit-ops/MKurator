@@ -386,4 +386,65 @@ var _ = Describe("QueueManagerConnectionReconciler", func() {
 		Expect(conditionStatus(recovered.Status.Conditions, messagingv1alpha1.ConditionReady)).
 			To(Equal(metav1.ConditionTrue))
 	})
+
+	It("preserves Ready on transient ping while already Ready (T6)", func() {
+		secret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: testSecretName, Namespace: ns},
+			Data: map[string][]byte{
+				"username": []byte("admin"),
+				"password": []byte("secret"),
+			},
+		}
+		Expect(k8sClient.Create(ctx, secret)).To(Succeed())
+
+		conn := &messagingv1alpha1.QueueManagerConnection{
+			ObjectMeta: metav1.ObjectMeta{Name: key, Namespace: ns},
+			Spec: messagingv1alpha1.QueueManagerConnectionSpec{
+				QueueManager: testQueueManager,
+				Endpoint:     testEndpoint,
+				CredentialsSecretRef: messagingv1alpha1.SecretReference{
+					Name: testSecretName,
+				},
+			},
+		}
+		Expect(k8sClient.Create(ctx, conn)).To(Succeed())
+
+		okAdmin := mqadmintest.NewMockAdmin(GinkgoT())
+		okAdmin.EXPECT().Ping(mock.Anything).Return(nil).Once()
+
+		okFactory := mqadmintest.NewMockFactory(GinkgoT())
+		okFactory.EXPECT().ForConnection(mock.Anything, mock.Anything).Return(okAdmin, nil).Once()
+
+		rec := &QueueManagerConnectionReconciler{
+			Client:    k8sClient,
+			Scheme:    k8sClient.Scheme(),
+			MQFactory: okFactory,
+		}
+		req := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: ns, Name: key}}
+
+		_, err := rec.Reconcile(ctx, req)
+		Expect(err).NotTo(HaveOccurred())
+		_, err = rec.Reconcile(ctx, req)
+		Expect(err).NotTo(HaveOccurred())
+
+		ready := &messagingv1alpha1.QueueManagerConnection{}
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, ready)).To(Succeed())
+		Expect(conditionStatus(ready.Status.Conditions, messagingv1alpha1.ConditionReady)).
+			To(Equal(metav1.ConditionTrue))
+
+		transientAdmin := mqadmintest.NewMockAdmin(GinkgoT())
+		transientAdmin.EXPECT().Ping(mock.Anything).Return(&mqadmin.TransientError{Message: "timeout"}).Once()
+		transientFactory := mqadmintest.NewMockFactory(GinkgoT())
+		transientFactory.EXPECT().ForConnection(mock.Anything, mock.Anything).Return(transientAdmin, nil).Once()
+		rec.MQFactory = transientFactory
+
+		result, err := rec.Reconcile(ctx, req)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(result.RequeueAfter).To(Equal(TransientRequeueInterval()))
+
+		stillReady := &messagingv1alpha1.QueueManagerConnection{}
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, stillReady)).To(Succeed())
+		Expect(conditionStatus(stillReady.Status.Conditions, messagingv1alpha1.ConditionReady)).
+			To(Equal(metav1.ConditionTrue))
+	})
 })
