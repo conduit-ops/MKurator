@@ -348,6 +348,80 @@ var _ = Describe("Validating admission webhooks", func() {
 		Expect(webhookK8sClient.Create(ctx, rule)).To(Succeed())
 	})
 
+	// T6 (EC-P1-04): MQSC injection hardening — admission must reject values that would
+	// break out of USERSRC/CHCKCLNT/AUTHADD MQSC tokens.
+	Describe("MQSC injection hardening (T6)", func() {
+		BeforeEach(func() {
+			ctx := context.Background()
+			Expect(webhookK8sClient.Create(ctx, &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: ns},
+			})).To(Succeed())
+			Expect(webhookK8sClient.Create(ctx, sampleWebhookConnection(ns, "qm1"))).To(Succeed())
+			ch := &messagingv1alpha1.Channel{
+				ObjectMeta: metav1.ObjectMeta{Name: "orders-app", Namespace: ns},
+				Spec: messagingv1alpha1.ChannelSpec{
+					ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+					ChannelName:   "ORDERS.APP",
+				},
+			}
+			Expect(webhookK8sClient.Create(ctx, ch)).To(Succeed())
+		})
+
+		It("denies ChannelAuthRule with MQSC injection in userSource", func() {
+			ctx := context.Background()
+			rule := &messagingv1alpha1.ChannelAuthRule{
+				ObjectMeta: metav1.ObjectMeta{Name: "inject-usersrc", Namespace: ns},
+				Spec: messagingv1alpha1.ChannelAuthRuleSpec{
+					ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+					ChannelName:   "ORDERS.APP",
+					RuleType:      messagingv1alpha1.ChannelAuthRuleTypeAddressMap,
+					Address:       "*",
+					UserSource:    messagingv1alpha1.ChannelAuthUserSource(`MAP) MCAUSER('mqm'`),
+				},
+			}
+			err := webhookK8sClient.Create(ctx, rule)
+			Expect(err).To(HaveOccurred())
+			Expect(apierrors.IsInvalid(err)).To(BeTrue())
+			Expect(err.Error()).To(ContainSubstring("spec.userSource"))
+		})
+
+		It("denies ChannelAuthRule with MQSC injection in checkClient", func() {
+			ctx := context.Background()
+			rule := &messagingv1alpha1.ChannelAuthRule{
+				ObjectMeta: metav1.ObjectMeta{Name: "inject-chckclnt", Namespace: ns},
+				Spec: messagingv1alpha1.ChannelAuthRuleSpec{
+					ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+					ChannelName:   "ORDERS.APP",
+					RuleType:      messagingv1alpha1.ChannelAuthRuleTypeAddressMap,
+					Address:       "*",
+					CheckClient:   messagingv1alpha1.ChannelAuthCheckClient("REQUIRED) ACTION(REPLACE"),
+				},
+			}
+			err := webhookK8sClient.Create(ctx, rule)
+			Expect(err).To(HaveOccurred())
+			Expect(apierrors.IsInvalid(err)).To(BeTrue())
+			Expect(err.Error()).To(ContainSubstring("spec.checkClient"))
+		})
+
+		It("denies AuthorityRecord with MQSC injection in authorities", func() {
+			ctx := context.Background()
+			auth := &messagingv1alpha1.AuthorityRecord{
+				ObjectMeta: metav1.ObjectMeta{Name: "inject-auth", Namespace: ns},
+				Spec: messagingv1alpha1.AuthorityRecordSpec{
+					ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+					Profile:       "APP.ORDERS",
+					ObjectType:    messagingv1alpha1.AuthorityObjectTypeQueue,
+					Principal:     "app",
+					Authorities:   []string{`GET) AUTHADD(ALL`},
+				},
+			}
+			err := webhookK8sClient.Create(ctx, auth)
+			Expect(err).To(HaveOccurred())
+			Expect(apierrors.IsInvalid(err)).To(BeTrue())
+			Expect(err.Error()).To(ContainSubstring("spec.authorities"))
+		})
+	})
+
 	It("denies QueueManagerConnection delete when ChannelAuthRule dependent exists", func() {
 		ctx := context.Background()
 		Expect(webhookK8sClient.Create(ctx, &corev1.Secret{

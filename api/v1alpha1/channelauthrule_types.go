@@ -17,6 +17,27 @@ const (
 	ChannelAuthRuleTypeBlockAddr  ChannelAuthRuleType = "BLOCKADDR"
 )
 
+// ChannelAuthUserSource is USERSRC for ADDRESSMAP rules.
+// +kubebuilder:validation:Enum=CHANNEL;NOACCESS
+type ChannelAuthUserSource string
+
+const (
+	ChannelAuthUserSourceChannel  ChannelAuthUserSource = "CHANNEL"
+	ChannelAuthUserSourceNoAccess ChannelAuthUserSource = "NOACCESS"
+)
+
+// ChannelAuthCheckClient is CHCKCLNT for ADDRESSMAP rules.
+// +kubebuilder:validation:Enum=REQUIRED;ASQMGR;REQDADM;ASCHL;OPTIONAL
+type ChannelAuthCheckClient string
+
+const (
+	ChannelAuthCheckClientRequired ChannelAuthCheckClient = "REQUIRED"
+	ChannelAuthCheckClientAsQMGR   ChannelAuthCheckClient = "ASQMGR"
+	ChannelAuthCheckClientReqdAdm  ChannelAuthCheckClient = "REQDADM"
+	ChannelAuthCheckClientAsCHL    ChannelAuthCheckClient = "ASCHL"
+	ChannelAuthCheckClientOptional ChannelAuthCheckClient = "OPTIONAL"
+)
+
 // ChannelAuthRuleFinalizer ensures CHLAUTH is removed before the CR is deleted.
 const ChannelAuthRuleFinalizer = "messaging.mkurator.dev/channelauthrule"
 
@@ -45,11 +66,11 @@ type ChannelAuthRuleSpec struct {
 
 	// UserSource maps to USERSRC(...) for ADDRESSMAP rules.
 	// +optional
-	UserSource string `json:"userSource,omitempty"`
+	UserSource ChannelAuthUserSource `json:"userSource,omitempty"`
 
 	// CheckClient maps to CHCKCLNT(...) for ADDRESSMAP rules.
 	// +optional
-	CheckClient string `json:"checkClient,omitempty"`
+	CheckClient ChannelAuthCheckClient `json:"checkClient,omitempty"`
 
 	// Description maps to DESCR(...).
 	// +optional

@@ -107,12 +107,13 @@ func (r *ChannelAuthRuleReconciler) reconcile(ctx context.Context, req ctrl.Requ
 	}
 	if drifted {
 		msg := "CHLAUTH on IBM MQ differs from spec (observe-only; not applying)"
+		metrics.RecordDriftDetected(metrics.ControllerChannelAuthRule)
 		if err := patchSyncedDrift(ctx, r.Status(), r.Recorder, rule, rule.Generation, msg,
 			syncStatusOpts{mqObjectExists: boolPtr(true)}); err != nil {
 			return ctrl.Result{}, fmt.Errorf("update status: %w", err)
 		}
 		logger.Info("ChannelAuthRule drift detected (observe-only)", "channel", rule.Spec.ChannelName)
-		return ctrl.Result{}, nil
+		return workloadDriftResyncResult(), nil
 	}
 
 	if err := patchSyncedAvailable(ctx, r.Status(), r.Recorder, rule, rule.Generation,
@@ -120,7 +121,7 @@ func (r *ChannelAuthRuleReconciler) reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, fmt.Errorf("update status: %w", err)
 	}
 	logger.Info("ChannelAuthRule synced", "channel", rule.Spec.ChannelName, "type", rule.Spec.RuleType)
-	return ctrl.Result{}, nil
+	return workloadDriftResyncResult(), nil
 }
 
 func (r *ChannelAuthRuleReconciler) ensureChannelAuth(
@@ -176,8 +177,8 @@ func toMQChannelAuthSpec(rule *messagingv1alpha1.ChannelAuthRule) mqadmin.Channe
 		RuleType:    mqadmin.ChannelAuthRuleType(rule.Spec.RuleType),
 		Address:     rule.Spec.Address,
 		UserList:    rule.Spec.UserList,
-		UserSource:  rule.Spec.UserSource,
-		CheckClient: rule.Spec.CheckClient,
+		UserSource:  string(rule.Spec.UserSource),
+		CheckClient: string(rule.Spec.CheckClient),
 		Description: rule.Spec.Description,
 	}
 }
