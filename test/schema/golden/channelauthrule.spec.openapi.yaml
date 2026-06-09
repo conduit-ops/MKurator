@@ -10,6 +10,12 @@ properties:
     type: string
   checkClient:
     description: CheckClient maps to CHCKCLNT(...) for ADDRESSMAP rules.
+    enum:
+    - REQUIRED
+    - ASQMGR
+    - REQDADM
+    - ASCHL
+    - OPTIONAL
     type: string
   connectionRef:
     description: ConnectionRef names a QueueManagerConnection in the same namespace.
@@ -38,6 +44,9 @@ properties:
     type: string
   userSource:
     description: UserSource maps to USERSRC(...) for ADDRESSMAP rules.
+    enum:
+    - CHANNEL
+    - NOACCESS
     type: string
 required:
 - channelName

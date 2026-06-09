@@ -46,6 +46,7 @@ type AuthorityRecordSpec struct {
 
 	// Authorities maps to AUTHADD(...) — e.g. GET, PUT, CONNECT.
 	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:items:Pattern=`^[A-Za-z0-9+_]+$`
 	// +listType=set
 	Authorities []string `json:"authorities"`
 }

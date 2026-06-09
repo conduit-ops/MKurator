@@ -4,6 +4,7 @@ properties:
   authorities:
     description: Authorities maps to AUTHADD(...) — e.g. GET, PUT, CONNECT.
     items:
+      pattern: ^[A-Za-z0-9+_]+$
       type: string
     minItems: 1
     type: array
