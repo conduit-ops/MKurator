@@ -553,6 +553,73 @@ func TestQueueManagerConnectionReconciler_TransientPingFailure(t *testing.T) {
 	}
 }
 
+func TestQueueManagerConnectionReconciler_SteadyStateTransientPingPreservesReady(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	ns := "mkurator-system"
+	key := types.NamespacedName{Namespace: ns, Name: "qm1"}
+	s := unitSchemeOrFatal(t)
+
+	conn := &messagingv1alpha1.QueueManagerConnection{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       "qm1",
+			Namespace:  ns,
+			Generation: 1,
+			Finalizers: []string{messagingv1alpha1.QueueManagerConnectionFinalizer},
+		},
+		Spec: messagingv1alpha1.QueueManagerConnectionSpec{
+			QueueManager: "QM1",
+			Endpoint:     "https://mq.example:9443",
+			CredentialsSecretRef: messagingv1alpha1.SecretReference{
+				Name: "mq-credentials",
+			},
+		},
+		Status: messagingv1alpha1.QueueManagerConnectionStatus{
+			ObservedGeneration: 1,
+			Conditions: []metav1.Condition{{
+				Type:               messagingv1alpha1.ConditionReady,
+				Status:             metav1.ConditionTrue,
+				Reason:             messagingv1alpha1.ReasonAvailable,
+				LastTransitionTime: metav1.Now(),
+			}},
+		},
+	}
+
+	cl := fake.NewClientBuilder().
+		WithScheme(s).
+		WithStatusSubresource(conn).
+		WithObjects(conn).
+		Build()
+
+	mockAdmin := mqadmintest.NewMockAdmin(t)
+	mockAdmin.EXPECT().Ping(mock.Anything).Return(&mqadmin.TransientError{Message: "timeout"})
+
+	mockFactory := mqadmintest.NewMockFactory(t)
+	mockFactory.EXPECT().ForConnection(mock.Anything, mock.Anything).Return(mockAdmin, nil)
+
+	rec := &QueueManagerConnectionReconciler{
+		Client:    cl,
+		Scheme:    s,
+		MQFactory: mockFactory,
+	}
+
+	result, err := rec.Reconcile(ctx, ctrl.Request{NamespacedName: key})
+	if err != nil {
+		t.Fatalf("Reconcile: %v", err)
+	}
+	if result.RequeueAfter != TransientRequeueInterval() {
+		t.Fatalf("RequeueAfter = %v", result.RequeueAfter)
+	}
+
+	updated := &messagingv1alpha1.QueueManagerConnection{}
+	if err := cl.Get(ctx, key, updated); err != nil {
+		t.Fatal(err)
+	}
+	if conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionReady) != metav1.ConditionTrue {
+		t.Fatalf("Ready should stay True on transient ping, got %v", updated.Status.Conditions)
+	}
+}
+
 func TestQueueReconciler_ReconcileNotFound(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
