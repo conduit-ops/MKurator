@@ -19,7 +19,7 @@ new fields. Upgrading CRs before the operator can cause admission failures or st
 reconcile behaviour.
 
 ```sh
-VERSION=0.5.0   # target release
+VERSION=0.7.1   # target release
 
 # 1. CRDs (release tarball or chart crds/)
 kubectl apply --server-side -f install-crds.yaml
@@ -30,7 +30,7 @@ kubectl apply -f install.yaml
 # or: helm upgrade --install mkurator … --version "${VERSION}"
 
 kubectl -n mkurator-system rollout status deployment/mkurator-controller-manager
-kubectl -n mkurator-system wait --for=condition=Available certificate/webhook-server-cert --timeout=120s
+kubectl -n mkurator-system wait --for=condition=Ready certificate/webhook-server-cert --timeout=120s
 
 # 3. Workload CRs (when release notes require spec changes)
 kubectl apply -k config/samples/   # or your GitOps manifests
@@ -45,7 +45,7 @@ before upgrading.
 |------|-----|------------|
 | **&lt; 0.5.0** | **0.5.0+** | New CRDs: `ChannelAuthRule`, `AuthorityRecord`. Validating webhooks on by default (cert-manager TLS). Review [INSTALL_AND_USE.md](INSTALL_AND_USE.md) auth sections. |
 | **0.3.x** | **0.4.0+** | Validating webhooks and QMC delete protection. Ensure cert-manager is installed if using Helm/Kustomize webhook bundles. |
-| **0.2.x** | **0.3.0+** | Module and image registry moved to `konih/mkurator` ([ADR-0006](adr/0006-project-name-mkurator.md)). Update `image.repository` / install manifest URLs. |
+| **0.2.x** | **0.3.0+** | Module and image registry moved to `konih/mkurator` ([ADR-0006](adr/0006-project-name-kurator.md)). Update `image.repository` / install manifest URLs. |
 
 Semantic versioning: **patch** — bug fixes, safe rolling image bump; **minor** —
 new CR fields or kinds, may need CRD apply; **major** (or `feat!` / `BREAKING CHANGE`)
@@ -156,8 +156,9 @@ After the operator is healthy:
 
 ## Uninstall and reinstall
 
-For a clean reinstall, remove workload CRs first, then the operator, then CRDs — see
-[INSTALL_AND_USE.md#uninstall](INSTALL_AND_USE.md#uninstall).
+For a clean reinstall, remove workload CRs first (`Queue`, `Topic`, `Channel`,
+`ChannelAuthRule`, `AuthorityRecord`, then `QueueManagerConnection`), then the
+operator, then CRDs — see [INSTALL_AND_USE.md#uninstall](INSTALL_AND_USE.md#uninstall).
 
 ## See also
 

@@ -97,12 +97,12 @@ Pick one method. All paths install the same CRDs and controller.
 
 Download the release tag you intend to run from
 [GitHub Releases](https://github.com/konih/mkurator/releases). The examples below
-use **`0.6.0`** (or the tag you downloaded from GitHub Releases). Older tags
+use **`0.7.1`** (or the tag you downloaded from GitHub Releases). Older tags
 (before `v0.5.0`) do not include `ChannelAuthRule` and `AuthorityRecord`; check
 release notes before upgrading.
 
 ```sh
-VERSION=0.6.0   # replace with your release tag
+VERSION=0.7.1   # replace with your release tag
 curl -sLO "https://github.com/konih/mkurator/releases/download/v${VERSION}/install-crds.yaml"
 curl -sLO "https://github.com/konih/mkurator/releases/download/v${VERSION}/install.yaml"
 
@@ -114,6 +114,7 @@ Verify:
 
 ```sh
 kubectl -n mkurator-system rollout status deployment/mkurator-controller-manager
+kubectl -n mkurator-system wait --for=condition=Ready certificate/webhook-server-cert --timeout=120s
 kubectl get crd | grep messaging.mkurator.dev
 ```
 
@@ -123,7 +124,7 @@ The release `install.yaml` pins the controller image to
 ### Option B — Helm chart (GitHub Release tarball)
 
 ```sh
-VERSION=0.6.0
+VERSION=0.7.1
 curl -sLO "https://github.com/konih/mkurator/releases/download/v${VERSION}/mkurator-${VERSION}.tgz"
 
 helm upgrade --install mkurator "mkurator-${VERSION}.tgz" \
@@ -136,7 +137,7 @@ helm upgrade --install mkurator "mkurator-${VERSION}.tgz" \
 ### Option C — Helm chart (OCI registry on GHCR)
 
 ```sh
-VERSION=0.6.0
+VERSION=0.7.1
 helm upgrade --install mkurator oci://ghcr.io/konih/mkurator \
   --version "${VERSION}" \
   --namespace mkurator-system \
@@ -577,7 +578,7 @@ only — it does not own MQ objects on the queue manager).
 ## Upgrading from a previous release
 
 When moving from an older MKurator release (for example **v0.3.x** or **v0.4.x**) to the
-current chart (**0.6.0**), apply updates in this order:
+current chart (**0.7.1**), apply updates in this order:
 
 1. **CRDs** — `install-crds.yaml` or `charts/mkurator/crds/` (new kinds and schema changes
    land here first).
@@ -587,7 +588,7 @@ current chart (**0.6.0**), apply updates in this order:
 
 **Webhooks and cert-manager:** releases from **0.4.0** onward enable validating webhooks by
 default. Ensure **cert-manager** is installed and the webhook certificate becomes
-`Available` before relying on admission. Skipping CRD apply first can leave the API server
+`Ready` before relying on admission. Skipping CRD apply first can leave the API server
 on an old schema while the controller expects new fields.
 
 **Before you upgrade:** read the [CHANGELOG](../CHANGELOG.md) and the
@@ -792,8 +793,8 @@ kubectl -n mkurator-system logs deployment/mkurator-controller-manager
 ## Uninstall
 
 ```sh
-# Remove user resources first
-kubectl delete queue,topic,channel --all -n mkurator-system
+# Remove user resources first (short names: mq, tp, chl, car, auth, qmc)
+kubectl delete queue,topic,channel,channelauthrule,authorityrecord --all -n mkurator-system
 kubectl delete qmc --all -n mkurator-system
 
 # Operator (Helm)
