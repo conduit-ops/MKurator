@@ -307,7 +307,7 @@ New decisions: [ADR-0021](adr/0021-attribute-api-shape.md) –
 
 ### 7c — Code & test health
 
-- [ ] **Collapse the 5-way type switches** (ARCH-06, critical review §2.6):
+- [x] **Collapse the 5-way type switches** (ARCH-06, critical review §2.6):
   `MQObject` interface or generics across `reconcile_shared.go` /
   `status_helpers.go` / `drift_policy.go`; one generic workload reconcile
   skeleton. **Precondition for any new CRD kind.**
