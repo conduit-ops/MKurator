@@ -11,6 +11,24 @@ on the default branch using [git-cliff](https://git-cliff.org/).
 
 ### Bug Fixes
 
+- **api:** Keep MQObject interface out of api package [16aad54](https://github.com/konih/mkurator/commit/16aad54872710c9fb51b33256b76ef81e3768aeb)
+
+
+### Features
+
+- **api:** Add CEL admission rules per ADR-0025 [43c0f96](https://github.com/konih/mkurator/commit/43c0f9672db4d4ae104129477de3909f78cfeaff)
+
+
+### Refactoring
+
+- **controller:** Collapse workload type switches via MQObject [81e1f7c](https://github.com/konih/mkurator/commit/81e1f7c1f1a177d859563574c416006642d6e034)
+
+- **validation:** Keep webhooks stateful-only [07b978d](https://github.com/konih/mkurator/commit/07b978d701b662b20baa65d9be220dd1487b3f3c)
+
+## [0.8.0](https://github.com/konih/mkurator/compare/v0.7.1..v0.8.0) - 2026-06-10
+
+### Bug Fixes
+
 - **controller:** Classify events via typed wrap errors [ac1e3db](https://github.com/konih/mkurator/commit/ac1e3db9e50541611eead69fd242a0d455ca31a1)
 
 - **controller:** Observe-only auth skips SET when missing [9a813ed](https://github.com/konih/mkurator/commit/9a813edb4bb65f650423ac14bbb7447a08464fb1)
