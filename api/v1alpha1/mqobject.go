@@ -2,16 +2,9 @@ package v1alpha1
 
 import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-// MQObject is implemented by workload CRs reconciled against IBM MQ (Queue, Topic,
-// Channel, ChannelAuthRule, AuthorityRecord). Controllers use it to patch status
-// and resolve connection references without per-kind type switches.
-type MQObject interface {
-	GetMQConditions() *[]metav1.Condition
-	GetMQStatusFields() *MQObjectStatusFields
-	GetStatusObservedGeneration() *int64
-	SetStatusObservedGeneration(int64)
-	ConnectionRefName() string
-}
+// MQObject method sets for workload CRs (Queue, Topic, Channel, ChannelAuthRule,
+// AuthorityRecord). The interface type lives in internal/controller so controller-gen
+// does not attempt deepcopy on it.
 
 func (q *Queue) GetMQConditions() *[]metav1.Condition     { return &q.Status.Conditions }
 func (q *Queue) GetMQStatusFields() *MQObjectStatusFields { return &q.Status.MQObjectStatusFields }
