@@ -96,6 +96,23 @@ properties:
     maximum: 999999999
     minimum: 0
     type: integer
+  sslCipherSpec:
+    description: |-
+      SslCipherSpec is the TLS cipher specification for the channel (MQSC SSLCIPH).
+      Use an empty string or omit to disable TLS on the channel. Mutually exclusive with
+      attributes.sslciph; typed field takes precedence when folded into the attribute map for mqadmin.
+    type: string
+  sslClientAuth:
+    description: |-
+      SslClientAuth controls whether the remote party must present an X.509 client certificate
+      during TLS handshake (MQSC SSLCAUTH). Only effective when sslCipherSpec is non-empty.
+      Mutually exclusive with attributes.sslcauth; typed field takes precedence when folded
+      into the attribute map for mqadmin.
+    enum:
+    - required
+    - optional
+    - asqmgr
+    type: string
   suspend:
     description: Suspend pauses MQ reconciliation for this object. Status shows Synced=False
       ReasonSuspended.
@@ -142,3 +159,9 @@ x-kubernetes-validations:
 - message: maxInstancesClient field and attributes.maxinstc are mutually exclusive
   rule: '!has(self.maxInstancesClient) || !has(self.attributes) || !self.attributes.exists(k,
     k.lowerAscii() == ''maxinstc'')'
+- message: sslCipherSpec field and attributes.sslciph are mutually exclusive
+  rule: '!has(self.sslCipherSpec) || self.sslCipherSpec.size() == 0 || !has(self.attributes)
+    || !self.attributes.exists(k, k.lowerAscii() == ''sslciph'')'
+- message: sslClientAuth field and attributes.sslcauth are mutually exclusive
+  rule: '!has(self.sslClientAuth) || !has(self.attributes) || !self.attributes.exists(k,
+    k.lowerAscii() == ''sslcauth'')'

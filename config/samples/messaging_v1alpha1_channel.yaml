@@ -15,3 +15,5 @@ spec:
   mcaUser: appuser
   maxInstances: 100
   maxInstancesClient: 50
+  sslCipherSpec: TLS_RSA_WITH_AES_128_CBC_SHA256
+  sslClientAuth: required

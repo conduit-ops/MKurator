@@ -276,6 +276,36 @@ func TestToMQChannelSpecTypedMaxInstancesClient(t *testing.T) {
 	}
 }
 
+func TestToMQChannelSpecTypedSslCipherSpec(t *testing.T) {
+	t.Parallel()
+	channel := &messagingv1alpha1.Channel{
+		Spec: messagingv1alpha1.ChannelSpec{
+			ChannelName:   "ORDERS.APP",
+			Type:          messagingv1alpha1.ChannelTypeSvrconn,
+			SslCipherSpec: "TLS_RSA_WITH_AES_128_CBC_SHA256",
+		},
+	}
+	spec := toMQChannelSpec(channel)
+	if spec.Attributes["sslciph"] != "TLS_RSA_WITH_AES_128_CBC_SHA256" {
+		t.Fatalf("attrs = %v", spec.Attributes)
+	}
+}
+
+func TestToMQChannelSpecTypedSslClientAuth(t *testing.T) {
+	t.Parallel()
+	channel := &messagingv1alpha1.Channel{
+		Spec: messagingv1alpha1.ChannelSpec{
+			ChannelName:   "ORDERS.APP",
+			Type:          messagingv1alpha1.ChannelTypeSvrconn,
+			SslClientAuth: messagingv1alpha1.ChannelSslClientAuthOptional,
+		},
+	}
+	spec := toMQChannelSpec(channel)
+	if spec.Attributes["sslcauth"] != "optional" {
+		t.Fatalf("attrs = %v", spec.Attributes)
+	}
+}
+
 func TestToMQChannelSpec(t *testing.T) {
 	t.Parallel()
 	channel := &messagingv1alpha1.Channel{
