@@ -141,10 +141,16 @@ func channelAuthStateFromAttributes(
 	spec mqadmin.ChannelAuthSpec,
 	attrs map[string]string,
 ) *mqadmin.ChannelAuthState {
+	address := attrs["address"]
+	if spec.RuleType == mqadmin.ChannelAuthRuleTypeBlockAddr {
+		if addrlist := attrs["addrlist"]; addrlist != "" {
+			address = addrlist
+		}
+	}
 	return &mqadmin.ChannelAuthState{
 		ChannelName: spec.ChannelName,
 		RuleType:    spec.RuleType,
-		Address:     attrs["address"],
+		Address:     address,
 		UserList:    attrs["userlist"],
 		UserSource:  attrs["usersrc"],
 		CheckClient: attrs["chckclnt"],
@@ -183,7 +189,10 @@ func buildDisplayChannelAuthMQSC(spec mqadmin.ChannelAuthSpec) (string, error) {
 	parts := []string{
 		fmt.Sprintf("DISPLAY CHLAUTH('%s') TYPE(%s)", mqscQuote(spec.ChannelName), spec.RuleType),
 	}
-	if spec.Address != "" {
+	switch {
+	case spec.RuleType == mqadmin.ChannelAuthRuleTypeBlockAddr:
+		parts = append(parts, "ADDRLIST")
+	case spec.Address != "":
 		parts = append(parts, fmt.Sprintf("ADDRESS('%s')", mqscQuote(spec.Address)))
 	}
 	return strings.Join(parts, " "), nil
@@ -243,8 +252,8 @@ func buildSetChannelAuthMQSC(spec mqadmin.ChannelAuthSpec, action string) (strin
 	parts := []string{
 		fmt.Sprintf("SET CHLAUTH('%s') TYPE(%s)", mqscQuote(spec.ChannelName), spec.RuleType),
 	}
-	if spec.Address != "" {
-		parts = append(parts, fmt.Sprintf("ADDRESS('%s')", mqscQuote(spec.Address)))
+	if clause := channelAuthAddressClause(spec); clause != "" {
+		parts = append(parts, clause)
 	}
 	if action == "REMOVE" {
 		parts = append(parts, "ACTION(REMOVE)")
@@ -302,4 +311,15 @@ func buildSetAuthorityMQSC(spec mqadmin.AuthoritySpec, remove bool) (string, err
 
 func mqscQuote(s string) string {
 	return strings.ReplaceAll(s, "'", "''")
+}
+
+func channelAuthAddressClause(spec mqadmin.ChannelAuthSpec) string {
+	if spec.Address == "" {
+		return ""
+	}
+	kw := "ADDRESS"
+	if spec.RuleType == mqadmin.ChannelAuthRuleTypeBlockAddr {
+		kw = "ADDRLIST"
+	}
+	return fmt.Sprintf("%s('%s')", kw, mqscQuote(spec.Address))
 }
