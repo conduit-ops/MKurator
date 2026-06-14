@@ -37,7 +37,7 @@ func TestBuildSetChannelAuthMQSCBlockAddr(t *testing.T) {
 	if err != nil {
 		t.Fatalf("buildSetChannelAuthMQSC: %v", err)
 	}
-	want := "SET CHLAUTH('*') TYPE(BLOCKADDR) ADDRESS('192.0.2.1') " +
+	want := "SET CHLAUTH('*') TYPE(BLOCKADDR) ADDRLIST('192.0.2.1') " +
 		"DESCR('block TEST-NET-1') ACTION(REPLACE)"
 	if cmd != want {
 		t.Fatalf("got %q, want %q", cmd, want)
@@ -54,7 +54,7 @@ func TestBuildSetChannelAuthMQSCBlockAddrRemove(t *testing.T) {
 	if err != nil {
 		t.Fatalf("buildSetChannelAuthMQSC: %v", err)
 	}
-	want := "SET CHLAUTH('*') TYPE(BLOCKADDR) ADDRESS('192.0.2.1') ACTION(REMOVE)"
+	want := "SET CHLAUTH('*') TYPE(BLOCKADDR) ADDRLIST('192.0.2.1') ACTION(REMOVE)"
 	if cmd != want {
 		t.Fatalf("got %q, want %q", cmd, want)
 	}
@@ -365,7 +365,7 @@ func TestBuildDisplayChannelAuthMQSCBlockAddr(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := "DISPLAY CHLAUTH('*') TYPE(BLOCKADDR) ADDRESS('192.0.2.1')"
+	want := "DISPLAY CHLAUTH('*') TYPE(BLOCKADDR) ADDRLIST"
 	if cmd != want {
 		t.Fatalf("got %q, want %q", cmd, want)
 	}
@@ -377,7 +377,7 @@ func TestChannelAuthStateFromAttributesBlockAddr(t *testing.T) {
 		RuleType:    mqadmin.ChannelAuthRuleTypeBlockAddr,
 	}
 	state := channelAuthStateFromAttributes(spec, map[string]string{
-		"address": "192.0.2.1", "descr": "block",
+		"addrlist": "192.0.2.1", "descr": "block",
 	})
 	if state.Address != "192.0.2.1" || state.Description != "block" {
 		t.Fatalf("state = %+v", state)
