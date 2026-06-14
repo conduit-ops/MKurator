@@ -40,6 +40,13 @@ func e2eClientUserForTest(testName string) string {
 	return fmt.Sprintf("e2eu%05d", h.Sum32()%100000)
 }
 
+// e2eChannelNameForTest returns a name within IBM MQ's 20-character channel limit.
+func e2eChannelNameForTest(testName string) string {
+	h := fnv.New32a()
+	_, _ = h.Write([]byte(testName))
+	return fmt.Sprintf("E2E.C.%05d", h.Sum32()%100000)
+}
+
 // mqE2EEnabled reports whether IBM MQ integration tests should run.
 func mqE2EEnabled() bool {
 	return os.Getenv("KURATOR_E2E_MQ") == "1"

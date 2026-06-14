@@ -21,6 +21,7 @@ const (
 	mqChannelAuthCRName       = "e2e-dev-app-addressmap"
 	mqChannelBlockAddrCRName  = "e2e-blockaddr-car"
 	mqChannelUserMapCRName    = "e2e-usermap-car"
+	mqChannelUserMapPrereqCRName = "e2e-usermap-channel"
 	mqChannelPrereqCRName     = "e2e-dev-app-channel"
 	mqAuthorityCRName         = "e2e-app-orders-get-put"
 )
@@ -332,6 +333,7 @@ var _ = Describe("Post-manager IBM MQ auth", Label("mq", "mq-auth-serial"), Seri
 		kubectlForceRemoveNamespaced("channelauthrule", mqChannelBlockAddrCRName, ns)
 		kubectlForceRemoveNamespaced("channelauthrule", mqChannelUserMapCRName, ns)
 		kubectlForceRemoveNamespaced("authorityrecord", mqAuthorityCRName, ns)
+		kubectlForceRemoveNamespaced("channel", mqChannelUserMapPrereqCRName, ns)
 		kubectlForceRemoveNamespaced("channel", mqChannelPrereqCRName, ns)
 		kubectlForceRemoveNamespaced("queuemanagerconnection", mqConnectionName, ns)
 	})
@@ -475,7 +477,9 @@ spec:
 	})
 
 	It("reconciles a USERMAP ChannelAuthRule CR against the kind IBM MQ queue manager", func() {
-		clientUser := e2eClientUserForTest(CurrentSpecReport().FullText())
+		specName := CurrentSpecReport().FullText()
+		clientUser := e2eClientUserForTest(specName)
+		channelObject := e2eChannelNameForTest(specName)
 
 		Expect(kubectlApply(connectionManifest(ns))).To(Succeed())
 
@@ -491,14 +495,14 @@ spec:
   type: svrconn
   attributes:
     trptype: tcp
-`, mqChannelPrereqCRName, ns, mqConnectionName, e2eChannelName)
+`, mqChannelUserMapPrereqCRName, ns, mqConnectionName, channelObject)
 		Expect(applyWithWebhookRetry(channelYAML)).To(Succeed())
 
 		Eventually(func(g Gomega) {
-			out, runErr := runKubectl("get", "channel", mqChannelPrereqCRName, "-n", ns,
+			out, runErr := runKubectl("get", "channel", mqChannelUserMapPrereqCRName, "-n", ns,
 				"-o", "jsonpath={.status.conditions[?(@.type==\"Synced\")].status}")
 			g.Expect(runErr).NotTo(HaveOccurred())
-			g.Expect(out).To(Equal("True"), "Channel %s must be Synced before USERMAP ChannelAuthRule admission", mqChannelPrereqCRName)
+			g.Expect(out).To(Equal("True"), "Channel %s must be Synced before USERMAP ChannelAuthRule admission", mqChannelUserMapPrereqCRName)
 		}).WithTimeout(mqSyncedEventuallyTimeout).WithPolling(5 * time.Second).Should(Succeed())
 
 		carYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1alpha1
@@ -511,11 +515,11 @@ spec:
     name: %s
   channelName: %s
   ruleType: USERMAP
-  clientUser: %s
+  clientUser: "%s"
   userSource: MAP
   mcaUser: app
   description: e2e usermap rule
-`, mqChannelUserMapCRName, ns, mqConnectionName, e2eChannelName, clientUser)
+`, mqChannelUserMapCRName, ns, mqConnectionName, channelObject, clientUser)
 		Expect(applyWithWebhookRetry(carYAML)).To(Succeed())
 
 		Eventually(func(g Gomega) {
@@ -531,29 +535,31 @@ spec:
 		defer cancel()
 
 		carSpec := mqadmin.ChannelAuthSpec{
-			ChannelName: e2eChannelName,
+			ChannelName: channelObject,
 			RuleType:    mqadmin.ChannelAuthRuleTypeUserMap,
 			ClientUser:  clientUser,
 			UserSource:  "MAP",
 			McaUser:     "app",
 			Description: "e2e usermap rule",
 		}
-		ok, err := channelAuthMatches(ctx, client, carSpec)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(ok).To(BeTrue(), "USERMAP CHLAUTH for channel %s should match ChannelAuthRule spec", e2eChannelName)
+		Eventually(func(g Gomega) {
+			ok, matchErr := channelAuthMatches(ctx, client, carSpec)
+			g.Expect(matchErr).NotTo(HaveOccurred())
+			g.Expect(ok).To(BeTrue(), "USERMAP CHLAUTH for channel %s should match ChannelAuthRule spec", channelObject)
+		}).WithTimeout(mqSyncedEventuallyTimeout).WithPolling(5 * time.Second).Should(Succeed())
 
 		Expect(kubectlDeleteWait("channelauthrule", mqChannelUserMapCRName, ns)).To(Succeed(),
 			"USERMAP ChannelAuthRule CR delete should complete within %s", kubectlWaitTimeout)
 
 		carLookup := mqadmin.ChannelAuthSpec{
-			ChannelName: e2eChannelName,
+			ChannelName: channelObject,
 			RuleType:    mqadmin.ChannelAuthRuleTypeUserMap,
 			ClientUser:  clientUser,
 		}
 		Eventually(func(g Gomega) {
 			ok, err := channelAuthExists(ctx, client, carLookup)
 			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(ok).To(BeFalse(), "USERMAP CHLAUTH for channel %s should be removed from MQ after CR delete", e2eChannelName)
+			g.Expect(ok).To(BeFalse(), "USERMAP CHLAUTH for channel %s should be removed from MQ after CR delete", channelObject)
 		}).WithTimeout(KubectlWaitDuration).WithPolling(3 * time.Second).Should(Succeed())
 	})
 
