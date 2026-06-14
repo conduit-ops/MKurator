@@ -24,6 +24,19 @@ const (
 	ChannelTransportTypeLU62 ChannelTransportType = "lu62"
 )
 
+// ChannelSslClientAuth is the SSL client authentication requirement (MQSC SSLCAUTH).
+// +kubebuilder:validation:Enum=required;optional;asqmgr
+type ChannelSslClientAuth string
+
+const (
+	// ChannelSslClientAuthRequired requires a client certificate at TLS handshake.
+	ChannelSslClientAuthRequired ChannelSslClientAuth = "required"
+	// ChannelSslClientAuthOptional allows connections without a client certificate.
+	ChannelSslClientAuthOptional ChannelSslClientAuth = "optional"
+	// ChannelSslClientAuthAsQmgr uses the queue manager SSL client authentication setting.
+	ChannelSslClientAuthAsQmgr ChannelSslClientAuth = "asqmgr"
+)
+
 // ChannelFinalizer ensures the MQ channel is deleted before the CR is removed.
 const ChannelFinalizer = "messaging.mkurator.dev/channel"
 
@@ -35,6 +48,8 @@ const ChannelFinalizer = "messaging.mkurator.dev/channel"
 // +kubebuilder:validation:XValidation:rule="!has(self.mcaUser) || self.mcaUser.size() == 0 || !has(self.attributes) || !self.attributes.exists(k, k.lowerAscii() == 'mcauser')",message="mcaUser field and attributes.mcauser are mutually exclusive"
 // +kubebuilder:validation:XValidation:rule="!has(self.maxInstances) || !has(self.attributes) || !self.attributes.exists(k, k.lowerAscii() == 'maxinst')",message="maxInstances field and attributes.maxinst are mutually exclusive"
 // +kubebuilder:validation:XValidation:rule="!has(self.maxInstancesClient) || !has(self.attributes) || !self.attributes.exists(k, k.lowerAscii() == 'maxinstc')",message="maxInstancesClient field and attributes.maxinstc are mutually exclusive"
+// +kubebuilder:validation:XValidation:rule="!has(self.sslCipherSpec) || self.sslCipherSpec.size() == 0 || !has(self.attributes) || !self.attributes.exists(k, k.lowerAscii() == 'sslciph')",message="sslCipherSpec field and attributes.sslciph are mutually exclusive"
+// +kubebuilder:validation:XValidation:rule="!has(self.sslClientAuth) || !has(self.attributes) || !self.attributes.exists(k, k.lowerAscii() == 'sslcauth')",message="sslClientAuth field and attributes.sslcauth are mutually exclusive"
 type ChannelSpec struct {
 	// ConnectionRef names a QueueManagerConnection in the same namespace.
 	// +kubebuilder:validation:Required
@@ -111,6 +126,19 @@ type ChannelSpec struct {
 	// +kubebuilder:validation:Maximum=999999999
 	// +optional
 	MaxInstancesClient *int32 `json:"maxInstancesClient,omitempty"`
+
+	// SslCipherSpec is the TLS cipher specification for the channel (MQSC SSLCIPH).
+	// Use an empty string or omit to disable TLS on the channel. Mutually exclusive with
+	// attributes.sslciph; typed field takes precedence when folded into the attribute map for mqadmin.
+	// +optional
+	SslCipherSpec string `json:"sslCipherSpec,omitempty"`
+
+	// SslClientAuth controls whether the remote party must present an X.509 client certificate
+	// during TLS handshake (MQSC SSLCAUTH). Only effective when sslCipherSpec is non-empty.
+	// Mutually exclusive with attributes.sslcauth; typed field takes precedence when folded
+	// into the attribute map for mqadmin.
+	// +optional
+	SslClientAuth ChannelSslClientAuth `json:"sslClientAuth,omitempty"`
 
 	// Suspend pauses MQ reconciliation for this object. Status shows Synced=False ReasonSuspended.
 	// +optional
