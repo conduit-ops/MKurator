@@ -9,6 +9,14 @@ on the default branch using [git-cliff](https://git-cliff.org/).
 
 ## [Unreleased]
 
+## [0.9.5](https://github.com/conduit-ops/MKurator/compare/v0.9.4..v0.9.5) - 2026-06-14
+
+### Bug Fixes
+
+- **e2e:** Use USERMAP mcaUser drift for observe-only spec [36e042c](https://github.com/conduit-ops/MKurator/commit/36e042cc71cd3daf5f0a05c120d64c51ee3774da)
+
+## [0.9.4](https://github.com/conduit-ops/MKurator/compare/v0.9.3..v0.9.4) - 2026-06-14
+
 ### Bug Fixes
 
 - **auth:** USERMAP drift polish and validation breadth (AUTH-3b) [1a064fb](https://github.com/conduit-ops/MKurator/commit/1a064fb4c15dbac37562a43c225b36709c2261fd)
