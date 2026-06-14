@@ -119,3 +119,8 @@ func testNameHash(tName string) uint32 {
 	_, _ = h.Write([]byte(tName))
 	return h.Sum32()
 }
+
+// blockAddrForTest returns a unique TEST-NET-1 address (192.0.2.0/24) per test.
+func blockAddrForTest(tName string) string {
+	return fmt.Sprintf("192.0.2.%d", testNameHash(tName)%254+1)
+}

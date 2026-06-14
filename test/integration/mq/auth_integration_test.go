@@ -60,6 +60,76 @@ func TestIntegration_GetChannelAuth(t *testing.T) {
 	}
 }
 
+func TestIntegration_GetChannelAuth_BlockAddr(t *testing.T) {
+	requireIntegration(t)
+	ctx := testContext(t)
+	address := blockAddrForTest(t.Name())
+
+	c, err := newIntegrationClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	authSpec := mqadmin.ChannelAuthSpec{
+		ChannelName: "*",
+		RuleType:    mqadmin.ChannelAuthRuleTypeBlockAddr,
+		Address:     address,
+		Description: "integration blockaddr path",
+	}
+	t.Cleanup(func() {
+		_ = c.DeleteChannelAuth(context.Background(), authSpec)
+	})
+
+	if err := c.SetChannelAuth(ctx, authSpec); err != nil {
+		t.Fatalf("SetChannelAuth: %v", err)
+	}
+
+	state, err := c.GetChannelAuth(ctx, authSpec)
+	if err != nil {
+		t.Fatalf("GetChannelAuth: %v", err)
+	}
+	if state.Address != address {
+		t.Fatalf("address = %q, want %q", state.Address, address)
+	}
+}
+
+func TestIntegration_DeleteChannelAuth_BlockAddr(t *testing.T) {
+	requireIntegration(t)
+	ctx := testContext(t)
+	address := blockAddrForTest(t.Name())
+
+	c, err := newIntegrationClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	authSpec := mqadmin.ChannelAuthSpec{
+		ChannelName: "*",
+		RuleType:    mqadmin.ChannelAuthRuleTypeBlockAddr,
+		Address:     address,
+		Description: "integration blockaddr delete path",
+	}
+	t.Cleanup(func() {
+		_ = c.DeleteChannelAuth(context.Background(), authSpec)
+	})
+
+	if err := c.SetChannelAuth(ctx, authSpec); err != nil {
+		t.Fatalf("SetChannelAuth: %v", err)
+	}
+
+	if err := c.DeleteChannelAuth(ctx, authSpec); err != nil {
+		t.Fatalf("DeleteChannelAuth: %v", err)
+	}
+
+	_, err = c.GetChannelAuth(ctx, authSpec)
+	if err == nil {
+		t.Fatal("expected not found after delete")
+	}
+	if !errors.Is(err, mqadmin.ErrNotFound) {
+		t.Fatalf("expected ErrNotFound, got %v", err)
+	}
+}
+
 func TestIntegration_GetChannelAuth_BlockUser(t *testing.T) {
 	requireIntegration(t)
 	ctx := testContext(t)
