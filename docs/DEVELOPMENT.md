@@ -495,7 +495,11 @@ prefixes per process (`E2E.N1.…`). CHLAUTH specs run in a **serial** `mq-auth-
 PR CI sets `KURATOR_E2E_LABEL_FILTER='(smoke || mq) && !slow'` (manager smoke + MQ
 paths; skips metrics and QMC rotation). Override
 locally, e.g. `KURATOR_E2E_NODES=1 KURATOR_E2E_LABEL_FILTER= task test:e2e` for a full
-serial run. `-race` stays enabled (`CGO_ENABLED=1`); reduce nodes on small hosts if flaky.
+serial run. Maintainer `task ci:e2e` parity with PR CI (smoke + MQ, no slow metrics):
+`KURATOR_E2E_LABEL_FILTER='(smoke || mq) && !slow' task ci:e2e`. If local runs flake with
+the default three Ginkgo nodes, retry with `KURATOR_E2E_NODES=1` before triaging deploy
+races — suite teardown uses `SynchronizedAfterSuite` so only process 1 deletes the
+shared operator install after all parallel specs finish (ARCH-07).
 In GitHub Actions, `-ginkgo.github-output` is added for workflow annotations.
 
 On spec failure, diagnostics go to **GinkgoWriter** (visible with `-v`). Controller

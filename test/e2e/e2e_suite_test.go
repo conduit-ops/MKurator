@@ -71,7 +71,10 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	waitForMKuratorCRDsEstablished()
 })
 
-var _ = AfterSuite(func() {
+// SynchronizedAfterSuite: only process 1 tears down shared operator/CRD resources after
+// all parallel Ginkgo processes finish. Plain AfterSuite runs per process and races when
+// one node deletes mkurator-system while others still run specs (ARCH-07).
+var _ = SynchronizedAfterSuite(func() {}, func() {
 	teardownCertManager()
 	cleanupE2EResources()
 })
