@@ -377,9 +377,8 @@ func TestIntegration_ProbeQueueLocalAttribute_DisplayProbeMechanism(t *testing.T
 		Name: name,
 		Type: mqadmin.QueueTypeLocal,
 		Attributes: map[string]string{
-			"maxdepth":  "100",
-			"maxmsglen": "4194304",
-			"share":     "yes",
+			"maxdepth": "100",
+			"share":    "yes",
 		},
 	}); err != nil {
 		t.Fatalf("DefineQueue: %v", err)
