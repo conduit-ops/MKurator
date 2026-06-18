@@ -5,12 +5,14 @@ import (
 )
 
 // ChannelType is the IBM MQ channel object type to manage.
-// +kubebuilder:validation:Enum=svrconn
+// +kubebuilder:validation:Enum=svrconn;sdr
 type ChannelType string
 
 const (
 	// ChannelTypeSvrconn is a server-connection channel (inbound clients).
 	ChannelTypeSvrconn ChannelType = "svrconn"
+	// ChannelTypeSdr is a sender message channel (outbound to a remote queue manager).
+	ChannelTypeSdr ChannelType = "sdr"
 )
 
 // ChannelTransportType is the channel transport protocol (MQSC TRPTYPE).
@@ -50,6 +52,10 @@ const ChannelFinalizer = "messaging.mkurator.dev/channel"
 // +kubebuilder:validation:XValidation:rule="!has(self.maxInstancesClient) || !has(self.attributes) || !self.attributes.exists(k, k.lowerAscii() == 'maxinstc')",message="maxInstancesClient field and attributes.maxinstc are mutually exclusive"
 // +kubebuilder:validation:XValidation:rule="!has(self.sslCipherSpec) || self.sslCipherSpec.size() == 0 || !has(self.attributes) || !self.attributes.exists(k, k.lowerAscii() == 'sslciph')",message="sslCipherSpec field and attributes.sslciph are mutually exclusive"
 // +kubebuilder:validation:XValidation:rule="!has(self.sslClientAuth) || !has(self.attributes) || !self.attributes.exists(k, k.lowerAscii() == 'sslcauth')",message="sslClientAuth field and attributes.sslcauth are mutually exclusive"
+// +kubebuilder:validation:XValidation:rule="!has(self.connName) || self.connName.size() == 0 || !has(self.attributes) || !self.attributes.exists(k, k.lowerAscii() == 'conname')",message="connName field and attributes.conname are mutually exclusive"
+// +kubebuilder:validation:XValidation:rule="!has(self.xmitQueue) || self.xmitQueue.size() == 0 || !has(self.attributes) || !self.attributes.exists(k, k.lowerAscii() == 'xmitq')",message="xmitQueue field and attributes.xmitq are mutually exclusive"
+// +kubebuilder:validation:XValidation:rule="self.type != 'sdr' || (has(self.connName) && size(self.connName) > 0) || (has(self.attributes) && ('conname' in self.attributes && size(self.attributes['conname']) > 0))",message="SDR channels require connName or attribute conname"
+// +kubebuilder:validation:XValidation:rule="self.type != 'sdr' || (has(self.xmitQueue) && size(self.xmitQueue) > 0) || (has(self.attributes) && ('xmitq' in self.attributes && size(self.attributes['xmitq']) > 0))",message="SDR channels require xmitQueue or attribute xmitq"
 type ChannelSpec struct {
 	// ConnectionRef names a QueueManagerConnection in the same namespace.
 	// +kubebuilder:validation:Required
@@ -66,7 +72,7 @@ type ChannelSpec struct {
 	// +kubebuilder:validation:XValidation:rule="!self.upperAscii().startsWith('AMQ')",message="names with prefix AMQ are reserved for IBM MQ internal use"
 	ChannelName string `json:"channelName"`
 
-	// Type is the channel kind to define. Only svrconn is reconciled in v1alpha1.
+	// Type is the channel kind to define. svrconn and sdr are reconciled in v1alpha1.
 	// +kubebuilder:default=svrconn
 	// +optional
 	Type ChannelType `json:"type,omitempty"`
@@ -139,6 +145,24 @@ type ChannelSpec struct {
 	// into the attribute map for mqadmin.
 	// +optional
 	SslClientAuth ChannelSslClientAuth `json:"sslClientAuth,omitempty"`
+
+	// ConnName is the remote connection name for sender channels (MQSC CONNAME), e.g.
+	// qm2.example.com(1414). Required for type sdr when not set via attributes.conname.
+	// Mutually exclusive with attributes.conname; typed field takes precedence when folded
+	// into the attribute map for mqadmin.
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=264
+	// +optional
+	ConnName string `json:"connName,omitempty"`
+
+	// XmitQueue is the transmission queue used by a sender channel (MQSC XMITQ).
+	// Required for type sdr when not set via attributes.xmitq. Mutually exclusive with
+	// attributes.xmitq; typed field takes precedence when folded into the attribute map for mqadmin.
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=48
+	// +kubebuilder:validation:Pattern=`^[A-Z0-9./%&$#@]+$`
+	// +optional
+	XmitQueue string `json:"xmitQueue,omitempty"`
 
 	// Suspend pauses MQ reconciliation for this object. Status shows Synced=False ReasonSuspended.
 	// +optional

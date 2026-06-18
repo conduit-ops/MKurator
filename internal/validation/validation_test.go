@@ -115,6 +115,31 @@ func TestValidateChannelSpec(t *testing.T) {
 	}
 }
 
+func TestValidateChannelSpecSdrRequiresConnectionAttrs(t *testing.T) {
+	t.Parallel()
+	scheme := runtime.NewScheme()
+	_ = messagingv1alpha1.AddToScheme(scheme)
+	conn := sampleConnection("ns", "qm1")
+	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(conn).Build()
+
+	spec := &messagingv1alpha1.ChannelSpec{
+		ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		ChannelName:   "QM1.TO.QM2",
+		Type:          messagingv1alpha1.ChannelTypeSdr,
+	}
+	_, errs := ValidateChannelSpec(context.Background(), cl, "ns", "qm1-to-qm2", spec)
+	if len(errs) != 2 {
+		t.Fatalf("expected connName and xmitQueue required, got %v", errs)
+	}
+
+	spec.ConnName = "qm2.example.com(1414)"
+	spec.XmitQueue = "SYSTEM.DEFAULT.XMIT.QUEUE"
+	_, errs = ValidateChannelSpec(context.Background(), cl, "ns", "qm1-to-qm2", spec)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors: %v", errs)
+	}
+}
+
 func TestValidateTopicSpec(t *testing.T) {
 	t.Parallel()
 	scheme := runtime.NewScheme()

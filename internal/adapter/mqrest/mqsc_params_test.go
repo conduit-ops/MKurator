@@ -72,15 +72,63 @@ func TestChannelDisplayParametersIncludeConnectionLimits(t *testing.T) {
 	want := map[string]struct{}{"maxinst": {}, "maxinstc": {}, "sslciph": {}, "sslcauth": {}}
 	for k := range want {
 		found := false
-		for _, p := range channelDisplayParameters {
+		for _, p := range channelSvrconnDisplayParameters {
 			if p == k {
 				found = true
 				break
 			}
 		}
 		if !found {
-			t.Fatalf("%q missing from channelDisplayParameters", k)
+			t.Fatalf("%q missing from channelSvrconnDisplayParameters", k)
 		}
+	}
+}
+
+func TestChannelSdrDisplayParametersIncludeConnectionAttrs(t *testing.T) {
+	t.Parallel()
+	for _, k := range []string{attrConname, attrXmitq} {
+		found := false
+		for _, p := range channelSdrDisplayParameters {
+			if p == k {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Fatalf("%q missing from channelSdrDisplayParameters", k)
+		}
+	}
+}
+
+func TestDefineChannelParametersSdr(t *testing.T) {
+	t.Parallel()
+	params := defineChannelParameters(mqadmin.ChannelSpec{
+		Name: "QM1.TO.QM2",
+		Type: mqadmin.ChannelTypeSdr,
+		Attributes: map[string]string{
+			"conname": "qm2.example.com(1414)",
+			"xmitq":   "SYSTEM.DEFAULT.XMIT.QUEUE",
+			"trptype": "tcp",
+		},
+	})
+	if params["chltype"] != "sdr" {
+		t.Fatalf("chltype = %v", params["chltype"])
+	}
+	if params["conname"] != "qm2.example.com(1414)" {
+		t.Fatalf("conname = %v", params["conname"])
+	}
+}
+
+func TestValidateChannelType(t *testing.T) {
+	t.Parallel()
+	if err := validateChannelType(mqadmin.ChannelTypeSvrconn); err != nil {
+		t.Fatalf("svrconn: %v", err)
+	}
+	if err := validateChannelType(mqadmin.ChannelTypeSdr); err != nil {
+		t.Fatalf("sdr: %v", err)
+	}
+	if err := validateChannelType(mqadmin.ChannelType("rcvr")); err == nil {
+		t.Fatal("expected error for rcvr")
 	}
 }
 
@@ -103,8 +151,11 @@ func TestDriftCheckKeyExports(t *testing.T) {
 	if len(TopicDriftCheckKeys()) == 0 {
 		t.Fatal("expected topic drift keys")
 	}
-	if len(ChannelDriftCheckKeys()) == 0 {
+	if len(ChannelDriftCheckKeys(mqadmin.ChannelTypeSvrconn)) == 0 {
 		t.Fatal("expected channel drift keys")
+	}
+	if len(ChannelDriftCheckKeys(mqadmin.ChannelTypeSdr)) == 0 {
+		t.Fatal("expected sdr channel drift keys")
 	}
 }
 

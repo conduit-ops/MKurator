@@ -367,8 +367,9 @@ parity; coverage floor intact without padding; e2e flake rate addressed.
   reconciler + drift (AUTH-3b), Docker integration (AUTH-3a #42), kind e2e (AUTH-4 #43).
 - [ ] AuthorityRecord channel/namelist profile parity with queue profiles.
 - [x] BLOCKADDR integration + e2e coverage (AUTH-1/AUTH-2) — #40 Docker integration, #41 kind e2e.
-- [ ] Further channel types (SDR/RCVR) behind the same quality bar — only
-  after the ARCH-06 refactor (7c) makes new kinds cheap.
+- [x] `SDR` sender channel — `connName`/`xmitQueue` CRD fields, mqrest SET/DISPLAY/DELETE,
+  reconciler + drift, Docker integration (AUTH-8a).
+- [ ] `RCVR` receiver channel — behind the same quality bar as SDR (AUTH-8b).
 
 ## Later / candidate work
 
