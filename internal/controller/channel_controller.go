@@ -102,7 +102,7 @@ func (r *ChannelReconciler) reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, nil
 	}
 
-	if channel.Spec.Type != "" && channel.Spec.Type != messagingv1alpha1.ChannelTypeSvrconn {
+	if channel.Spec.Type != "" && !mqadmin.ChannelTypeSupported(mqadmin.ChannelType(channel.Spec.Type)) {
 		return setSyncedError(ctx, r.Status(), r.Recorder, channel, channel.Generation, &mqadmin.TerminalError{
 			Reason:  "UnsupportedChannelType",
 			Message: fmt.Sprintf("channel type %q is not supported in v1alpha1", channel.Spec.Type),
@@ -171,7 +171,7 @@ func (r *ChannelReconciler) ensureChannel(
 		exists,
 		observedAttrs,
 		spec.Attributes,
-		mqrest.ChannelDriftCheckKeys(),
+		mqrest.ChannelDriftCheckKeys(spec.Type),
 		fmt.Sprintf("channel %q", spec.Name),
 		func() error { return admin.DefineChannel(mqCtx, spec) },
 	)
@@ -237,13 +237,19 @@ func toMQChannelSpec(channel *messagingv1alpha1.Channel) mqadmin.ChannelSpec {
 	if channel.Spec.SslClientAuth != "" {
 		attrs[mqadmin.NormalizeAttrKey("sslcauth")] = string(channel.Spec.SslClientAuth)
 	}
+	if channel.Spec.ConnName != "" {
+		attrs[mqadmin.NormalizeAttrKey("conname")] = channel.Spec.ConnName
+	}
+	if channel.Spec.XmitQueue != "" {
+		attrs[mqadmin.NormalizeAttrKey("xmitq")] = channel.Spec.XmitQueue
+	}
 	chType := mqadmin.ChannelTypeSvrconn
 	if channel.Spec.Type != "" {
 		chType = mqadmin.ChannelType(channel.Spec.Type)
 	}
 	return mqadmin.ChannelSpec{
 		Name:       channel.Spec.ChannelName,
-		Type:       chType,
+		Type:       mqadmin.NormalizeChannelType(chType),
 		Attributes: attrs,
 	}
 }

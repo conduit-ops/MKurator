@@ -127,6 +127,18 @@ matrices and CI coverage: [PHASE5_AUTH_SKETCH.md](PHASE5_AUTH_SKETCH.md).
 | `maxinst`, `maxinstc` | yes | yes | Numeric |
 | `sslciph`, `sslcauth` | yes | yes | TLS — Phase 4 DISPLAY drift; `sslcauth` case-insensitive |
 
+### Channel (`CHLTYPE(SDR)`)
+
+| Attribute | DEFINE | Drift (DISPLAY) | Notes |
+|-----------|--------|-----------------|-------|
+| `conname` | yes | yes | Required — remote connection name (typed `connName`) |
+| `xmitq` | yes | yes | Required — transmission queue (typed `xmitQueue`) |
+| `trptype` | yes | yes | Case-insensitive |
+| `descr` | yes | yes | |
+| `maxmsgl` | yes | yes | Numeric |
+| `mcauser` | yes | yes | |
+| `sslciph` | yes | yes | TLS cipher spec |
+
 ## Auth — GET / drift (Phase 5)
 
 `ChannelAuthRule` and `AuthorityRecord` reconcilers do **not** use the DISPLAY
@@ -178,7 +190,7 @@ for GET; only `authorities` is drift-checked after the rule exists.
 |------------|------|-------|
 | Durable subscription | `DEFINE SUB` | Later |
 | Model queue | `QMODEL` | Later |
-| Message channels | `CHLTYPE(SDR\|RCVR\|…)` | Later |
+| Message channels | `CHLTYPE(RCVR\|…)` | Later |
 | Connection auth | `AUTHINFO`, `ALTER QMGR CONNAUTH` | Platform |
 
 **Shipped (Phase 5):** OAM via `AuthorityRecord` (`SET AUTHREC`); channel auth via

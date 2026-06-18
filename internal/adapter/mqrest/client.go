@@ -313,6 +313,10 @@ func (c *Client) GetChannel(ctx context.Context, spec mqadmin.ChannelSpec) (*mqa
 	var err error
 	defer func() { metrics.RecordMQOperation(metrics.MQOpGetChannel, err) }()
 
+	if err = validateChannelType(spec.Type); err != nil {
+		return nil, err
+	}
+
 	resp, err := c.runCommandJSON(ctx, channelDisplayRequest(spec.Name, spec.Type))
 	if err != nil {
 		return nil, err
@@ -331,6 +335,10 @@ func (c *Client) GetChannel(ctx context.Context, spec mqadmin.ChannelSpec) (*mqa
 func (c *Client) DefineChannel(ctx context.Context, spec mqadmin.ChannelSpec) error {
 	var err error
 	defer func() { metrics.RecordMQOperation(metrics.MQOpDefineChannel, err) }()
+
+	if err = validateChannelType(spec.Type); err != nil {
+		return err
+	}
 
 	_, err = c.runCommandJSON(ctx, runCommandJSONRequest{
 		Type:       mqscType,
