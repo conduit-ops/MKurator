@@ -356,6 +356,32 @@ func TestToMQChannelSpecTypedSslClientAuth(t *testing.T) {
 	}
 }
 
+func TestToMQChannelSpecTypedSdrConnectionAttrs(t *testing.T) {
+	t.Parallel()
+	channel := &messagingv1alpha1.Channel{
+		Spec: messagingv1alpha1.ChannelSpec{
+			ChannelName:   "QM1.TO.QM2",
+			Type:          messagingv1alpha1.ChannelTypeSdr,
+			ConnName:      "qm2.example.com(1414)",
+			XmitQueue:     "SYSTEM.DEFAULT.XMIT.QUEUE",
+			TransportType: messagingv1alpha1.ChannelTransportTypeTCP,
+		},
+	}
+	spec := toMQChannelSpec(channel)
+	if spec.Type != mqadmin.ChannelTypeSdr {
+		t.Fatalf("type = %q", spec.Type)
+	}
+	if spec.Attributes["conname"] != "qm2.example.com(1414)" {
+		t.Fatalf("conname = %v", spec.Attributes)
+	}
+	if spec.Attributes["xmitq"] != "SYSTEM.DEFAULT.XMIT.QUEUE" {
+		t.Fatalf("xmitq = %v", spec.Attributes)
+	}
+	if spec.Attributes["trptype"] != "tcp" {
+		t.Fatalf("trptype = %v", spec.Attributes)
+	}
+}
+
 func TestToMQChannelSpec(t *testing.T) {
 	t.Parallel()
 	channel := &messagingv1alpha1.Channel{

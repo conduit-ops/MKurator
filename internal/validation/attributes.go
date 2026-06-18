@@ -28,7 +28,7 @@ var (
 	)
 	channelKnownAttrs = keys(
 		"descr", "trptype", "sharecnv", "maxmsgl", "mcauser", "maxinst", "maxinstc",
-		"sslciph", "sslcauth",
+		"sslciph", "sslcauth", "conname", "xmitq",
 	)
 )
 

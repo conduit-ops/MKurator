@@ -31,6 +31,15 @@ properties:
       rule: '!self.upperAscii().startsWith(''SYSTEM.'')'
     - message: names with prefix AMQ are reserved for IBM MQ internal use
       rule: '!self.upperAscii().startsWith(''AMQ'')'
+  connName:
+    description: |-
+      ConnName is the remote connection name for sender channels (MQSC CONNAME), e.g.
+      qm2.example.com(1414). Required for type sdr when not set via attributes.conname.
+      Mutually exclusive with attributes.conname; typed field takes precedence when folded
+      into the attribute map for mqadmin.
+    maxLength: 264
+    minLength: 1
+    type: string
   connectionRef:
     description: ConnectionRef names a QueueManagerConnection in the same namespace.
     properties:
@@ -128,10 +137,20 @@ properties:
     type: string
   type:
     default: svrconn
-    description: Type is the channel kind to define. Only svrconn is reconciled in
-      v1alpha1.
+    description: Type is the channel kind to define. svrconn and sdr are reconciled
+      in v1alpha1.
     enum:
     - svrconn
+    - sdr
+    type: string
+  xmitQueue:
+    description: |-
+      XmitQueue is the transmission queue used by a sender channel (MQSC XMITQ).
+      Required for type sdr when not set via attributes.xmitq. Mutually exclusive with
+      attributes.xmitq; typed field takes precedence when folded into the attribute map for mqadmin.
+    maxLength: 48
+    minLength: 1
+    pattern: ^[A-Z0-9./%&$#@]+$
     type: string
 required:
 - channelName
@@ -165,3 +184,16 @@ x-kubernetes-validations:
 - message: sslClientAuth field and attributes.sslcauth are mutually exclusive
   rule: '!has(self.sslClientAuth) || !has(self.attributes) || !self.attributes.exists(k,
     k.lowerAscii() == ''sslcauth'')'
+- message: connName field and attributes.conname are mutually exclusive
+  rule: '!has(self.connName) || self.connName.size() == 0 || !has(self.attributes)
+    || !self.attributes.exists(k, k.lowerAscii() == ''conname'')'
+- message: xmitQueue field and attributes.xmitq are mutually exclusive
+  rule: '!has(self.xmitQueue) || self.xmitQueue.size() == 0 || !has(self.attributes)
+    || !self.attributes.exists(k, k.lowerAscii() == ''xmitq'')'
+- message: SDR channels require connName or attribute conname
+  rule: self.type != 'sdr' || (has(self.connName) && size(self.connName) > 0) || (has(self.attributes)
+    && ('conname' in self.attributes && size(self.attributes['conname']) > 0))
+- message: SDR channels require xmitQueue or attribute xmitq
+  rule: self.type != 'sdr' || (has(self.xmitQueue) && size(self.xmitQueue) > 0) ||
+    (has(self.attributes) && ('xmitq' in self.attributes && size(self.attributes['xmitq'])
+    > 0))

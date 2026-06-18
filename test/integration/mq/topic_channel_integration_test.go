@@ -138,6 +138,57 @@ func TestIntegration_DeleteTopic_Idempotent(t *testing.T) {
 	}
 }
 
+func TestIntegration_Channel_Sdr_CreateGetDelete(t *testing.T) {
+	requireIntegration(t)
+	ctx := testContext(t)
+	name := channelNameForTest("SDR." + t.Name())
+
+	c, err := newIntegrationClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+	spec := mqadmin.ChannelSpec{
+		Name: name,
+		Type: mqadmin.ChannelTypeSdr,
+		Attributes: map[string]string{
+			"trptype": "tcp",
+			"conname": "127.0.0.1(1414)",
+			"xmitq":   "SYSTEM.DEFAULT.XMIT.QUEUE",
+			"descr":   "mkurator integration sdr channel",
+		},
+	}
+	t.Cleanup(func() {
+		_ = c.DeleteChannel(context.Background(), mqadmin.ChannelSpec{
+			Name: name,
+			Type: mqadmin.ChannelTypeSdr,
+		})
+	})
+
+	if err := c.DefineChannel(ctx, spec); err != nil {
+		t.Fatalf("DefineChannel: %v", err)
+	}
+
+	state, err := c.GetChannel(ctx, spec)
+	if err != nil {
+		t.Fatalf("GetChannel: %v", err)
+	}
+	if state.Attributes["conname"] == "" {
+		t.Fatalf("conname missing from observed attrs: %v", state.Attributes)
+	}
+	if state.Attributes["xmitq"] != "SYSTEM.DEFAULT.XMIT.QUEUE" {
+		t.Fatalf("xmitq = %q", state.Attributes["xmitq"])
+	}
+
+	if err := c.DeleteChannel(ctx, spec); err != nil {
+		t.Fatalf("DeleteChannel: %v", err)
+	}
+
+	_, err = c.GetChannel(ctx, spec)
+	if !errors.Is(err, mqadmin.ErrNotFound) {
+		t.Fatalf("expected not found after delete, got %v", err)
+	}
+}
+
 func TestIntegration_Channel_CreateGetDelete(t *testing.T) {
 	requireIntegration(t)
 	ctx := testContext(t)
@@ -281,7 +332,7 @@ func TestIntegration_DefineChannel_UnsupportedType(t *testing.T) {
 
 	err = c.DefineChannel(ctx, mqadmin.ChannelSpec{
 		Name: name,
-		Type: mqadmin.ChannelType("receiver"),
+		Type: mqadmin.ChannelType("rcvr"),
 	})
 	if !errors.Is(err, mqadmin.ErrTerminal) {
 		t.Fatalf("expected terminal error, got %v", err)

@@ -108,6 +108,27 @@ func TestFormatDefineChannelMQSC(t *testing.T) {
 	}
 }
 
+func TestFormatDefineChannelMQSC_Sdr(t *testing.T) {
+	t.Parallel()
+	got, err := FormatDefineChannelMQSC(mqadmin.ChannelSpec{
+		Name: "QM1.TO.QM2",
+		Type: mqadmin.ChannelTypeSdr,
+		Attributes: map[string]string{
+			attrTrptype: "tcp",
+			"conname":   "qm2.example.com(1414)",
+			"xmitq":     "SYSTEM.DEFAULT.XMIT.QUEUE",
+		},
+	})
+	if err != nil {
+		t.Fatalf("FormatDefineChannelMQSC: %v", err)
+	}
+	want := "DEFINE CHANNEL('QM1.TO.QM2') REPLACE CHLTYPE('sdr') " +
+		"CONNAME('qm2.example.com(1414)') TRPTYPE('tcp') XMITQ('SYSTEM.DEFAULT.XMIT.QUEUE')"
+	if got != want {
+		t.Fatalf("got %q want %q", got, want)
+	}
+}
+
 func TestFormatSetChannelAuthMQSC(t *testing.T) {
 	t.Parallel()
 	got, err := FormatSetChannelAuthMQSC(mqadmin.ChannelAuthSpec{

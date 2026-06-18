@@ -37,8 +37,11 @@ var queueAliasDisplayParameters = []string{
 	attrTargq, "targtype", attrDescr,
 }
 
+const attrSslCiph = "sslciph"
+const attrSslCauth = "sslcauth"
+
 var queueRemoteDisplayParameters = []string{
-	"rname", "rqmname", "xmitq", attrDescr,
+	"rname", "rqmname", attrXmitq, attrDescr,
 }
 
 // queueNumericParameters are coerced to JSON numbers for runCommandJSON DEFINE.
@@ -51,6 +54,8 @@ const (
 	attrSharecnv = "sharecnv"
 	attrMaxInst  = "maxinst"
 	attrMaxInstc = "maxinstc"
+	attrConname  = "conname"
+	attrXmitq    = "xmitq"
 )
 
 var channelNumericParameters = map[string]struct{}{
@@ -60,6 +65,15 @@ var channelNumericParameters = map[string]struct{}{
 	attrMaxInstc: {},
 }
 
+var channelSvrconnDisplayParameters = []string{
+	attrDescr, attrTrptype, attrSharecnv, attrMaxMsgl, attrMcaUser, attrMaxInst, attrMaxInstc,
+	attrSslCiph, attrSslCauth,
+}
+
+var channelSdrDisplayParameters = []string{
+	attrDescr, attrTrptype, attrConname, attrXmitq, attrMaxMsgl, attrMcaUser, attrSslCiph,
+}
+
 // topicDisplayParameters lists attributes safe for DISPLAY topic on IBM MQ 9.4.x
 // mqweb. pubscope/subscope are included for drift on 9.4; omit from this slice if
 // your QM returns MQWB0120E (see docs/ATTRIBUTE_RECONCILIATION.md).
@@ -67,9 +81,15 @@ var topicDisplayParameters = []string{
 	attrTopicStr, attrDescr, mqadmin.AttrKeyPub, mqadmin.AttrKeySub, "defpsist", "pubscope", "subscope",
 }
 
-var channelDisplayParameters = []string{
-	attrDescr, attrTrptype, attrSharecnv, attrMaxMsgl, attrMcaUser, attrMaxInst, attrMaxInstc,
-	"sslciph", "sslcauth",
+var channelDisplayParameters = channelSvrconnDisplayParameters
+
+func channelDisplayParametersForType(chlType mqadmin.ChannelType) []string {
+	switch mqadmin.NormalizeChannelType(chlType) {
+	case mqadmin.ChannelTypeSdr:
+		return append([]string(nil), channelSdrDisplayParameters...)
+	default:
+		return append([]string(nil), channelSvrconnDisplayParameters...)
+	}
 }
 
 func defineTopicParameters(spec mqadmin.TopicSpec) map[string]any {
@@ -121,9 +141,19 @@ func normalizeQueueAttributes(attrs map[string]string, qType mqadmin.QueueType) 
 func defineChannelParameters(spec mqadmin.ChannelSpec) map[string]any {
 	params := defineObjectParameters(spec.Attributes, channelNumericParameters)
 	if spec.Type != "" {
-		params["chltype"] = string(spec.Type)
+		params["chltype"] = string(mqadmin.NormalizeChannelType(spec.Type))
 	}
 	return params
+}
+
+func validateChannelType(chType mqadmin.ChannelType) error {
+	if mqadmin.ChannelTypeSupported(chType) {
+		return nil
+	}
+	return &mqadmin.TerminalError{
+		Reason:  "UnsupportedChannelType",
+		Message: fmt.Sprintf("channel type %q is not supported", chType),
+	}
 }
 
 func defineObjectParameters(
@@ -185,7 +215,7 @@ func queueDisplayRequest(spec mqadmin.QueueSpec, responseParameters []string) ru
 func channelDisplayRequest(name string, chlType mqadmin.ChannelType) runCommandJSONRequest {
 	params := map[string]any{}
 	if chlType != "" {
-		params["chltype"] = string(chlType)
+		params["chltype"] = string(mqadmin.NormalizeChannelType(chlType))
 	}
 	return runCommandJSONRequest{
 		Type:               mqscType,
@@ -193,7 +223,7 @@ func channelDisplayRequest(name string, chlType mqadmin.ChannelType) runCommandJ
 		Qualifier:          qualifierChannel,
 		Name:               name,
 		Parameters:         params,
-		ResponseParameters: append([]string(nil), channelDisplayParameters...),
+		ResponseParameters: channelDisplayParametersForType(chlType),
 	}
 }
 
@@ -208,6 +238,6 @@ func TopicDriftCheckKeys() []string {
 }
 
 // ChannelDriftCheckKeys returns DISPLAY-safe channel attribute keys used for drift detection.
-func ChannelDriftCheckKeys() []string {
-	return append([]string(nil), channelDisplayParameters...)
+func ChannelDriftCheckKeys(chlType mqadmin.ChannelType) []string {
+	return channelDisplayParametersForType(chlType)
 }
