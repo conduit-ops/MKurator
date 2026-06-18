@@ -213,7 +213,9 @@ var _ = Describe("ChannelReconciler", func() {
 		}
 
 		mockAdmin := mqadmintest.NewMockAdmin(GinkgoT())
-		mockAdmin.EXPECT().GetChannel(mock.Anything, desired).Return(nil, &mqadmin.NotFoundError{Object: "QM2.FROM.QM1"})
+		mockAdmin.EXPECT().
+			GetChannel(mock.Anything, desired).
+			Return(nil, &mqadmin.NotFoundError{Object: "QM2.FROM.QM1"})
 		mockAdmin.EXPECT().DefineChannel(mock.Anything, desired).Return(nil)
 
 		mockFactory := mqadmintest.NewMockFactory(GinkgoT())
