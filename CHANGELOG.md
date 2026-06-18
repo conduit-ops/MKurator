@@ -9,6 +9,26 @@ on the default branch using [git-cliff](https://git-cliff.org/).
 
 ## [Unreleased]
 
+## [0.10.0](https://github.com/conduit-ops/MKurator/compare/v0.9.6..v0.10.0) - 2026-06-18
+
+### Features
+
+- **mqrest:** DISPLAY capability probe spike (Day 22 MQ-1) (#58) ([#58](https://github.com/conduit-ops/MKurator/pull/58), )[7bc65f3](https://github.com/conduit-ops/MKurator/commit/7bc65f3fdfb8e6f14da31dd18601df5dfd048b7c)
+
+### Bug Fixes
+
+- **mqrest:** Stabilize sleep-with-context-cancel unit test [9dc47a1](https://github.com/conduit-ops/MKurator/commit/9dc47a1)
+
+### Documentation
+
+- **observability:** Metrics catalog and ServiceMonitor scrape checklist (#61) ([#61](https://github.com/conduit-ops/MKurator/pull/61), )[0b07c5b](https://github.com/conduit-ops/MKurator/commit/0b07c5b)
+
+### Tooling
+
+- **mq:** mqweb swagger fetch script and `task mq:swagger:fetch` (#59) ([#59](https://github.com/conduit-ops/MKurator/pull/59), )[cd7dee3](https://github.com/conduit-ops/MKurator/commit/cd7dee3)
+
+- **metrics:** Counter increment edge-case unit tests (#60) ([#60](https://github.com/conduit-ops/MKurator/pull/60), )[00ec315](https://github.com/conduit-ops/MKurator/commit/00ec315)
+
 ## [0.9.6](https://github.com/conduit-ops/MKurator/compare/v0.9.5..v0.9.6) - 2026-06-17
 
 ### Bug Fixes
