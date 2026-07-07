@@ -3,7 +3,6 @@ package validation
 import (
 	"fmt"
 
-	messagingv1alpha1 "github.com/conduit-ops/mkurator/api/v1alpha1"
 	"github.com/conduit-ops/mkurator/internal/mqadmin"
 )
 
@@ -40,9 +39,9 @@ func keys(names ...string) map[string]struct{} {
 	return out
 }
 
-func unknownQueueAttributeWarnings(qType messagingv1alpha1.QueueType, attrs map[string]string) []string {
+func unknownQueueAttributeWarnings(qType mqadmin.QueueType, attrs map[string]string) []string {
 	known := queueLocalKnownAttrs
-	switch mqadmin.NormalizeQueueType(mqadmin.QueueType(qType)) {
+	switch mqadmin.NormalizeQueueType(qType) {
 	case mqadmin.QueueTypeAlias:
 		known = queueAliasKnownAttrs
 	case mqadmin.QueueTypeRemote:
