@@ -53,7 +53,12 @@ func TestAttributeValueMatches_KeyNormalizationIdempotent(t *testing.T) {
 		once := AttributeValueMatches(key, desired, observed)
 		twice := AttributeValueMatches(NormalizeAttrKey(key), desired, observed)
 		if once != twice {
-			t.Fatalf("key normalization not idempotent in effect: key=%q desired=%q observed=%q", key, desired, observed)
+			t.Fatalf(
+				"key normalization not idempotent in effect: key=%q desired=%q observed=%q",
+				key,
+				desired,
+				observed,
+			)
 		}
 	})
 }
