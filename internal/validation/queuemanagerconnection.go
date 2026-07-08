@@ -225,7 +225,10 @@ func listConnectionDependents(
 	}
 	for i := range authRulesV1Beta1.Items {
 		if authRulesV1Beta1.Items[i].Spec.ConnectionRef.Name == connName {
-			dependents = append(dependents, connectionDependent{kind: "ChannelAuthRule", name: authRulesV1Beta1.Items[i].Name})
+			dependents = append(
+				dependents,
+				connectionDependent{kind: "ChannelAuthRule", name: authRulesV1Beta1.Items[i].Name},
+			)
 		}
 	}
 
@@ -252,7 +255,10 @@ func listConnectionDependents(
 	}
 	for i := range authRecsV1Beta1.Items {
 		if authRecsV1Beta1.Items[i].Spec.ConnectionRef.Name == connName {
-			dependents = append(dependents, connectionDependent{kind: "AuthorityRecord", name: authRecsV1Beta1.Items[i].Name})
+			dependents = append(
+				dependents,
+				connectionDependent{kind: "AuthorityRecord", name: authRecsV1Beta1.Items[i].Name},
+			)
 		}
 	}
 	return dependents, nil

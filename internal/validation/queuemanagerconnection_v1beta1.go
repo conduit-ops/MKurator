@@ -4,10 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	messagingv1alpha1 "github.com/conduit-ops/mkurator/api/v1alpha1"
-	messagingv1beta1 "github.com/conduit-ops/mkurator/api/v1beta1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	messagingv1alpha1 "github.com/conduit-ops/mkurator/api/v1alpha1"
+	messagingv1beta1 "github.com/conduit-ops/mkurator/api/v1beta1"
 )
 
 // ValidateQueueManagerConnectionSpecV1Beta1 runs stateful admission validation for QueueManagerConnection v1beta1.
