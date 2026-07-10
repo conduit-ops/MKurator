@@ -109,6 +109,14 @@ markdown_extensions:
 docs_dir: docs
 site_dir: site
 
+# Keep `mkdocs build --strict` clean. `/README.md` is the GitHub-facing folder
+# landing page (duplicates the site Home `index.md`) — anchored so section index
+# pages (crds/README.md, adr/README.md, examples/README.md) still build.
+# `node_modules/` only appears locally (markdownlint tooling); absent in CI.
+exclude_docs: |
+  /README.md
+  node_modules/
+
 extra:
   social:
     - icon: fontawesome/brands/github
