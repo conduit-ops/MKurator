@@ -64,6 +64,7 @@ nav:
       - Go module layout: GO_MODULE.md
   - Reference:
       - Custom resources: crds/README.md
+      - "QueueManagerConnection (qmc)": crds/queuemanagerconnection.md
       - "Queue (mq)": crds/queue.md
       - "Topic (tp)": crds/topic.md
       - "Channel (chl)": crds/channel.md

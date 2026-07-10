@@ -8,13 +8,14 @@ etcd storage version until the hub migration is proven in CI
 
 Field-level reference pages (every `spec`/`status` field) are being added per
 kind; the field tables are generated from the CRD OpenAPI schema by
-`task docs:crd-ref` and augmented with hand-written prose. Available so far:
+`task docs:crd-ref` and augmented with hand-written prose. All six kinds are
+covered: **[QueueManagerConnection](queuemanagerconnection.md)**,
 **[Queue](queue.md)**, **[Topic](topic.md)**, **[Channel](channel.md)**,
 **[ChannelAuthRule](channelauthrule.md)**, **[AuthorityRecord](authorityrecord.md)**.
 
 | Kind | Short name | Purpose | Sample YAML |
 | --- | --- | --- | --- |
-| `QueueManagerConnection` | `qmc` | mqweb endpoint, TLS, credential `Secret` reference | [queuemanagerconnection.yaml](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_queuemanagerconnection.yaml) |
+| [`QueueManagerConnection`](queuemanagerconnection.md) | `qmc` | mqweb endpoint, TLS, credential `Secret` reference | [queuemanagerconnection.yaml](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_queuemanagerconnection.yaml) |
 | [`Queue`](queue.md) | `mq` | Local, alias, or remote queue | [queue.yaml](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_queue.yaml) |
 | [`Topic`](topic.md) | `tp` | Administrative topic | [topic.yaml](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_topic.yaml) |
 | [`Channel`](channel.md) | `chl` | Server-connection, sender, or receiver channel | [channel.yaml](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_channel.yaml) |
