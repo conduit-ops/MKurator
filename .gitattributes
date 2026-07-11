@@ -1,0 +1,4 @@
+# Brewfile is a Homebrew manifest, not Ruby source. Without this override,
+# linguist reports the repo as containing Ruby and GitHub Code Quality (CodeQL)
+# schedules an "Analyze (ruby)" job that finds no Ruby code and fails.
+Brewfile linguist-detectable=false
