@@ -1,0 +1,10 @@
+# OSV-Scanner configuration — respected by the OpenSSF Scorecard "Vulnerabilities" check.
+# https://google.github.io/osv-scanner/configuration/
+
+[[IgnoredVulns]]
+id = "GO-2026-5932"
+reason = """golang.org/x/crypto/openpgp (unmaintained) is never imported by this module.
+The advisory flags every version of the golang.org/x/crypto module and has no fixed
+release, so a version bump cannot clear it. x/crypto enters the module graph only via
+the golines lint tool (logrus-prefixed-formatter -> x/crypto/ssh/terminal); govulncheck
+(call-graph aware, run in CI via vulncheck.yaml) reports no findings for it."""

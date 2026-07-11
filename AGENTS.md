@@ -185,6 +185,15 @@ Dependency hygiene:
 - Run `govulncheck ./...` in CI and act on findings.
 - Pin GitHub Actions to commit SHAs, not floating tags.
 
+Branch policy (enforced by a GitHub ruleset on `main`):
+
+- **Never push directly to `main`.** Every change — including docs, config, and
+  dependency bumps — lands via a pull request with code review and green
+  required checks. This also feeds the OpenSSF Scorecard Branch-Protection and
+  Code-Review checks.
+- Force pushes and branch deletion on `main` are blocked.
+- The same policy applies to **Kollect** (`PlatformRelay/Kollect`).
+
 ## Go conventions
 
 ### Error handling
