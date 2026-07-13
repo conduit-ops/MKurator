@@ -121,7 +121,8 @@ layout of mature operators (see [ROADMAP.md](docs/ROADMAP.md) for delivery phase
 
 ```
 .
-├── api/v1alpha1/              # CRD Go types (QMC, Queue, Topic, Channel, ChannelAuthRule, AuthorityRecord) + deepcopy
+├── api/v1alpha1/              # CRD Go types (QMC, Queue, Topic, Channel, ChannelAuthRule, AuthorityRecord) + deepcopy — storage version + conversion to hub
+├── api/v1beta1/               # served conversion hub (Hub() types); conversion webhooks convert v1alpha1 ↔ v1beta1
 ├── cmd/                       # main.go: manager wiring/entrypoint
 ├── internal/
 │   ├── controller/           # reconcilers (thin) + their tests
@@ -152,8 +153,10 @@ layout of mature operators (see [ROADMAP.md](docs/ROADMAP.md) for delivery phase
 └── AGENTS.md / README.md
 ```
 
-> Module `github.com/platformrelay/mkurator`, API group `messaging.mkurator.dev`,
-> version `v1alpha1`. GitHub org/repo: [platformrelay/MKurator](https://github.com/platformrelay/MKurator).
+> Module `github.com/platformrelay/mkurator`, API group `messaging.mkurator.dev`.
+> Two API versions are served: `v1alpha1` is the **storage version**, `v1beta1` is
+> a served **conversion hub** (its types implement `Hub()`); conversion webhooks
+> convert between them. GitHub org/repo: [platformrelay/MKurator](https://github.com/platformrelay/MKurator).
 > See [ADR-0018](docs/adr/0018-project-rename-mkurator.md) (supersedes [ADR-0006](docs/adr/0006-project-name-kurator.md)).
 
 ## Toolchain & dependencies
