@@ -6,3 +6,4 @@ code\.dev
 kollect\.dev
 github\.com/konih/kollect
 ghcr\.io/konih/kollect
+/users/[a-z][0-9]{6}
