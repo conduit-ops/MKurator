@@ -17,7 +17,6 @@
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=PlatformRelay_MKurator&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=PlatformRelay_MKurator)
 [![Go](https://img.shields.io/github/go-mod/go-version/platformrelay/mkurator)](https://pkg.go.dev/github.com/platformrelay/mkurator)
 [![Go Reference](https://pkg.go.dev/badge/github.com/platformrelay/MKurator.svg)](https://pkg.go.dev/github.com/platformrelay/mkurator)
-[![Go Report Card](https://goreportcard.com/badge/github.com/platformrelay/mkurator)](https://goreportcard.com/report/github.com/platformrelay/mkurator)
 [![Container](https://img.shields.io/badge/ghcr.io-platformrelay%2Fmkurator-2496ED?logo=docker&logoColor=white)](https://github.com/orgs/platformrelay/packages?repo_name=MKurator)
 
 A Kubernetes operator for declaratively managing **resources on an existing

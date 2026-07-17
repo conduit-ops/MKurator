@@ -231,9 +231,8 @@ verification remains a maintainer checklist item.
   [config/samples/README.md](https://github.com/platformrelay/MKurator/blob/main/config/samples/README.md).
 - [x] CI coverage export — `coverage.out` artifact, job summary, Codecov upload
   (`codecov.yml`; first green `main` run registers the project).
-- [x] **Go Report Card** — badge in [README.md](https://github.com/platformrelay/MKurator/blob/main/README.md); refresh at
-  [goreportcard.com/report/github.com/platformrelay/mkurator](https://goreportcard.com/report/github.com/platformrelay/mkurator)
-  after significant API changes (uses module path from `go.mod`).
+- [x] **Go Report Card** — retired (service sunset 2026-07-01); badge removed from README.
+  Quality gates remain via `golangci-lint` in CI.
 - [x] Release badge — [`README.md`](https://github.com/platformrelay/MKurator/blob/main/README.md) links GitHub Releases (latest tag).
 - [x] [LOCAL_SETUP.md](LOCAL_SETUP.md) — tiered dev tool install (`Brewfile`,
   `task tools:check` / `task tools:install`, updated `.devcontainer/`).
