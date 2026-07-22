@@ -134,6 +134,11 @@ tasks:
     cmds:
       - bash hack/scrub.sh
 
+  scrub:tree:
+    desc: Fail if any tracked file contains forbidden employer or legacy-project strings (CI net)
+    cmds:
+      - bash hack/scrub-tree.sh
+
   vuln:check:
     desc: Run govulncheck against code and dependencies
     deps: [install]

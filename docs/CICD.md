@@ -62,7 +62,7 @@ what each job runs, not execution order.
 
 | Event | Runs |
 |-------|------|
-| PR / push to `main` | `preflight.yaml`: `go mod tidy` + `go mod verify` + `task verify` + markdown/shell lint (5 min cap) |
+| PR / push to `main` | `preflight.yaml`: tree-wide scrub (`task scrub:tree`) + `go mod tidy` + `go mod verify` + `task verify` + markdown/shell lint (5 min cap) |
 | PR / push to `main` | `ci.yaml`: gitleaks, verify, **audit-rbac**, lint, test, build, docker-build, helm-lint, **fuzz** (nine parallel jobs; `fuzz` is a 6-way matrix, one entry per converted kind) |
 | PR / push to `main` | `codeql.yaml`: Go SAST (weekly schedule + PR/push) |
 | Push to `main` | `scorecard.yaml`: OpenSSF Scorecard (weekly schedule + push) |
@@ -141,12 +141,13 @@ cluster time.
 
 | Step | Command | Purpose |
 |------|---------|---------|
+| scrub | `bash hack/scrub-tree.sh` (`task scrub:tree`) | Scans **all tracked files** against `hack/scrub-patterns.txt`; fails listing offending filenames only (the staged-files pre-commit hook `hack/scrub.sh` stays the fast local net) |
 | go mod tidy | `go mod tidy` then `git diff --exit-code go.sum` | Fails when Renovate or local edits leave `go.sum` out of sync |
 | verify | `task verify` | Same as `ci.yaml` `verify` — CRDs, RBAC, deepcopy, mocks |
 
 Job timeout: **5 minutes**. Uses [`go-cache`](https://github.com/platformrelay/MKurator/tree/main/.github/actions/go-cache) (same keys as `ci.yaml`).
 
-Local equivalent: `go mod tidy && git diff --exit-code go.sum` then `task verify`.
+Local equivalent: `task scrub:tree`, then `go mod tidy && git diff --exit-code go.sum`, then `task verify`.
 
 Recommend requiring check name **`preflight`** on `main` (fail-fast before
 integration/e2e). `ci.yaml` still runs its own **`verify`** job in parallel for
