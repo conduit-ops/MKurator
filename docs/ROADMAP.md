@@ -375,8 +375,10 @@ Per [ADR-0026](adr/0026-v1beta1-graduation-plan.md); bake criterion met (`v0.11.
 - [x] **8d-5** UPGRADE.md migration guide + API_STABILITY graduation checklist sync;
   v1beta1 validating admission (deprecated `attributes` warnings, referential checks).
 - [x] **8d-6** e2e: apply `v1alpha1` → upgrade CRDs → object converts → reconcile green.
-- [x] **Exit:** tagged **minor** `v0.12.0` — 8d-5 and 8d-6 complete; optional
-  etcd storage flip to `v1beta1` hub after e2e proof deferred.
+- [x] **8d-7** etcd storage flipped to the `v1beta1` hub for all six kinds;
+  stored-object rewrite, `status.storedVersions` pruning, and downgrade caveats documented.
+- [x] **Exit:** tagged **minor** `v0.12.0`; follow-up storage migration completed
+  after the 8d-6 e2e proof.
 
 ## Phase 9 — MQ surface depth (resequenced from Phase 5)
 

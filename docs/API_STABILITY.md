@@ -67,7 +67,7 @@ Phase 8 tracks on [ROADMAP.md](ROADMAP.md#phase-8--api-maturation-v1beta1-readin
 | **8a** | Typed fields for drift-checked MQ attributes + `spec.attributes` escape hatch; mutual exclusivity (CEL); internal fold into the attribute map before `mqadmin` | **Done** | [ADR-0021](adr/0021-attribute-api-shape.md) |
 | **8b** | This stability statement (published) | **Done** | — |
 | **8c** | Optional DISPLAY capability probing | **Done** | [ADR-0024](adr/0024-mqsc-command-construction-hygiene.md) §4 |
-| **8d** | `v1beta1` for all six kinds + conversion webhook + migration docs + e2e proof | **In progress** (8d-0–8d-4 done; 8d-5/8d-6 open) | [ADR-0026](adr/0026-v1beta1-graduation-plan.md) |
+| **8d** | `v1beta1` for all six kinds + conversion webhook + migration docs + e2e proof | **Done** (including the 8d-7 storage flip) | [ADR-0026](adr/0026-v1beta1-graduation-plan.md) |
 
 During **8a**, existing manifests that use only `spec.attributes` remain valid.
 New typed fields are optional; setting both a typed field and the same key in
@@ -98,13 +98,16 @@ slices 8d-0–8d-6).
 5. CI **e2e migration proof** — apply `v1alpha1` CR, upgrade CRDs, assert
    conversion + reconcile green (**8d-6**).
 
-**Deferred (optional, post-`v0.12.0`):**
+**Completed after `v0.12.0`:**
 
-6. **etcd storage flip** to `v1beta1` hub — separate step now that 8d-6 is green;
-   do not run dual storage versions.
+6. **etcd storage flip (8d-7)** to the `v1beta1` hub for all six kinds. Both API
+   versions remain served. Operators must rewrite existing objects before
+   pruning `v1alpha1` from CRD `status.storedVersions`; see
+   [UPGRADE.md](UPGRADE.md#rewrite-stored-objects-after-the-storage-flip).
 
-The **8d exit criteria** are met as of `v0.12.0`; pin the operator and CRD bundle
-to a **release tag** and read CHANGELOG/UPGRADE before upgrading.
+The initial **8d exit criteria** were met at `v0.12.0`; the storage flip is now
+also complete. Pin the operator and CRD bundle to a **release tag** and read
+CHANGELOG/UPGRADE before upgrading.
 
 ## Deprecation policy (`v1beta1`)
 

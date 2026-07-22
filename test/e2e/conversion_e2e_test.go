@@ -41,7 +41,9 @@ var _ = Describe("v1alpha1 to v1beta1 CRD upgrade", Serial, Label("conversion", 
 		queueObject = mqQueueObjectName(prefix)
 		queueCR = mqCRName("e2e-conversion", prefix)
 		ensureMQCredentialsSecret(ns)
+		setQueueStorageVersion("v1alpha1")
 		DeferCleanup(func() {
+			setQueueStorageVersion("v1beta1")
 			cleanupMQSpec(ns, "queue", queueCR)
 		})
 	})
@@ -90,6 +92,27 @@ spec:
 				"folded attribute keys should not remain in spec.attributes on v1beta1 read")
 		}).WithTimeout(2 * time.Minute).WithPolling(2 * time.Second).Should(Succeed())
 
+		By("rewriting the object through the v1beta1 storage version")
+		_, err := runKubectl("annotate", "queues.v1beta1.messaging.mkurator.dev", queueCR, "-n", ns,
+			"messaging.mkurator.dev/storage-migrated=true", "--overwrite")
+		Expect(err).NotTo(HaveOccurred())
+
+		By("verifying the CRD records v1beta1 objects and both served reads remain lossless")
+		Eventually(func(g Gomega) {
+			storedVersions, getErr := runKubectl("get", "crd", "queues.messaging.mkurator.dev",
+				"-o", "jsonpath={.status.storedVersions}")
+			g.Expect(getErr).NotTo(HaveOccurred())
+			g.Expect(storedVersions).To(ContainSubstring("v1beta1"))
+			annotation, getErr := runKubectl("get", "queues.v1beta1.messaging.mkurator.dev", queueCR, "-n", ns,
+				"-o", "jsonpath={.metadata.annotations.messaging\\.mkurator\\.dev/storage-migrated}")
+			g.Expect(getErr).NotTo(HaveOccurred())
+			g.Expect(annotation).To(Equal("true"))
+			alphaMaxDepth, alphaDescr, getErr := queueServedV1Alpha1TypedFields(ns, queueCR)
+			g.Expect(getErr).NotTo(HaveOccurred())
+			g.Expect(alphaMaxDepth).To(Equal(conversionQueueMaxDepth))
+			g.Expect(alphaDescr).To(Equal(conversionQueueDescr))
+		}).WithTimeout(2 * time.Minute).WithPolling(2 * time.Second).Should(Succeed())
+
 		By("verifying reconcile stays green after CRD upgrade")
 		eventuallyExpectQueueSynced(ns, queueCR)
 
@@ -112,6 +135,17 @@ func eventuallyExpectQueueSynced(ns, queueCR string) {
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(out).To(Equal("True"), "Queue %s should stay Synced", queueCR)
 	}).WithTimeout(mqSyncedEventuallyTimeout).WithPolling(5 * time.Second).Should(Succeed())
+}
+
+func setQueueStorageVersion(version string) {
+	alphaStorage, betaStorage := "false", "true"
+	if version == "v1alpha1" {
+		alphaStorage, betaStorage = "true", "false"
+	}
+	patch := fmt.Sprintf(`[{"op":"replace","path":"/spec/versions/0/storage","value":%s},`+
+		`{"op":"replace","path":"/spec/versions/1/storage","value":%s}]`, alphaStorage, betaStorage)
+	_, err := runKubectl("patch", "crd", "queues.messaging.mkurator.dev", "--type=json", "-p", patch)
+	Expect(err).NotTo(HaveOccurred())
 }
 
 func queueStoredV1Alpha1Fields(ns, name string) (apiVersion, maxDepth, descr string, err error) {
@@ -152,4 +186,14 @@ func queueServedV1Beta1Fields(ns, name string) (apiVersion, maxDepth, descriptio
 		return "", "", "", "", err
 	}
 	return apiVersion, maxDepth, description, attrsJSON, nil
+}
+
+func queueServedV1Alpha1TypedFields(ns, name string) (maxDepth, description string, err error) {
+	resource := "queues.v1alpha1.messaging.mkurator.dev"
+	maxDepth, err = runKubectl("get", resource, name, "-n", ns, "-o", "jsonpath={.spec.maxDepth}")
+	if err != nil {
+		return "", "", err
+	}
+	description, err = runKubectl("get", resource, name, "-n", ns, "-o", "jsonpath={.spec.description}")
+	return maxDepth, description, err
 }
