@@ -43,7 +43,8 @@ before upgrading.
 
 | From | To | Highlights |
 |------|-----|------------|
-| **0.11.x** | **0.12.x** | **`v1beta1` API** for all six kinds with **conversion webhook** (dual served versions). See [Migrating to v1beta1 (0.11.x → 0.12.x)](#migrating-to-v1beta1-011x--012x) below. |
+| **0.12.x** | **0.13.x** | etcd storage moves from `v1alpha1` to the `v1beta1` hub. Complete the staged procedure in [Moving etcd storage to v1beta1 (0.12.x → 0.13.x)](#moving-etcd-storage-to-v1beta1-012x-013x). |
+| **0.11.x** | **0.12.x** | **`v1beta1` API** for all six kinds with **conversion webhook** (dual served versions). See [Migrating to v1beta1 (0.11.x → 0.12.x)](#migrating-to-v1beta1-011x-012x) below. |
 | **&lt; 0.5.0** | **0.5.0+** | New CRDs: `ChannelAuthRule`, `AuthorityRecord`. Validating webhooks on by default (cert-manager TLS). Review [INSTALL_AND_USE.md](INSTALL_AND_USE.md) auth sections. |
 | **0.3.x** | **0.4.0+** | Validating webhooks and QMC delete protection. Ensure cert-manager is installed if using Helm/Kustomize webhook bundles. |
 | **0.2.x** | **0.3.0+** | Module and image registry moved to `platformrelay/MKurator` ([ADR-0006](adr/0006-project-name-kurator.md)). Update `image.repository` / install manifest URLs. |
@@ -59,15 +60,14 @@ kinds (`QueueManagerConnection`, `Queue`, `Topic`, `Channel`, `ChannelAuthRule`,
 `AuthorityRecord`) per [ADR-0026](adr/0026-v1beta1-graduation-plan.md). Existing
 `v1alpha1` manifests and etcd objects continue to work — no big-bang rewrite required.
 
-### Upgrade order
+### Upgrade order for 0.12.x
 
 Follow the [safe upgrade order](#safe-upgrade-order) above. For this release the
 critical steps are:
 
-1. **CRDs first** — multi-version CRDs serve `v1beta1` and `v1alpha1`, with
-   `v1beta1` as the storage version. The conversion webhook must already be
-   available because reads of previously stored `v1alpha1` objects now use it.
-   Apply `install-crds.yaml` or `charts/mkurator/crds/` with server-side apply.
+1. **CRDs first** — multi-version CRDs serve `v1beta1` and `v1alpha1`, while
+   `v1alpha1` remains the storage version in 0.12.x. Apply `install-crds.yaml`
+   or `charts/mkurator/crds/` with server-side apply.
 2. **Operator second** — the controller image registers a **conversion webhook**
    in addition to validating webhooks. Wait for rollout **and** webhook TLS before
    changing workload CRs (see below).
@@ -75,7 +75,7 @@ critical steps are:
    objects convert on read.
 
 ```sh
-VERSION=0.13.0   # target release
+VERSION=0.12.2   # latest 0.12.x release
 
 # 1. CRDs (includes conversion webhook clientConfig)
 kubectl apply --server-side -f install-crds.yaml
@@ -88,6 +88,36 @@ kubectl -n mkurator-system wait --for=condition=Ready certificate/webhook-server
 # 3. Verify dual versions are served
 kubectl explain queue.spec --api-version=messaging.mkurator.dev/v1beta1
 kubectl explain queue.spec --api-version=messaging.mkurator.dev/v1alpha1
+```
+
+## Moving etcd storage to v1beta1 (0.12.x → 0.13.x)
+
+Release **0.13.x** changes the storage version for all six kinds to `v1beta1`.
+This is a staged upgrade: do not apply the 0.13.x CRDs to a 0.11.x (or older)
+operator, because that Deployment does not serve the conversion webhook needed
+to read objects stored in the other version.
+
+1. If starting below 0.12.x, first complete the 0.11.x → 0.12.x procedure
+   above. Deploy the latest 0.12.x operator and CRDs.
+2. Confirm the 0.12.x controller rollout, webhook certificate, and conversion
+   endpoint are healthy before changing the storage marker.
+3. Apply the 0.13.x CRDs, which make `v1beta1` the storage version while keeping
+   both versions served.
+4. Deploy the 0.13.x operator and wait for it and its webhook certificate.
+5. Rewrite stored objects and prune `status.storedVersions` only after the
+   verification below succeeds.
+
+```sh
+# Healthy 0.12.x conversion webhook is a prerequisite.
+kubectl -n mkurator-system rollout status deployment/mkurator-controller-manager
+kubectl -n mkurator-system wait --for=condition=Ready certificate/webhook-server-cert --timeout=120s
+kubectl get queues.v1beta1.messaging.mkurator.dev -A >/dev/null
+
+# Then apply 0.13.x CRDs before rolling out the matching controller image.
+kubectl apply --server-side -f install-crds.yaml
+kubectl apply -f install.yaml
+kubectl -n mkurator-system rollout status deployment/mkurator-controller-manager
+kubectl -n mkurator-system wait --for=condition=Ready certificate/webhook-server-cert --timeout=120s
 ```
 
 ### Conversion webhook TLS
@@ -128,16 +158,35 @@ the `v1beta1` endpoint. Use a storage-version migrator in production, or perform
 an equivalent read/replace for all six resources. Confirm backups first and
 serialize this with GitOps writers so resource-version conflicts are retried.
 
-```sh
+```bash
+set -u
+failed=0
 for resource in queuemanagerconnections queues topics channels channelauthrules authorityrecords; do
-  kubectl get "${resource}.v1beta1.messaging.mkurator.dev" -A \
-    -o jsonpath='{range .items[*]}{.metadata.namespace}{"\t"}{.metadata.name}{"\n"}{end}' |
   while IFS=$'\t' read -r namespace name; do
     [ -n "${name}" ] || continue
-    kubectl get "${resource}.v1beta1.messaging.mkurator.dev" "${name}" -n "${namespace}" -o yaml |
-      kubectl replace -f -
-  done
+    replaced=false
+    for attempt in 1 2 3 4 5; do
+      if kubectl get "${resource}.v1beta1.messaging.mkurator.dev" "${name}" \
+        -n "${namespace}" -o yaml | kubectl replace -f -; then
+        replaced=true
+        break
+      fi
+      echo "replace conflict for ${resource}/${namespace}/${name}; retry ${attempt}/5" >&2
+    done
+    if [ "${replaced}" != true ]; then
+      echo "failed to rewrite ${resource}/${namespace}/${name}" >&2
+      failed=1
+    fi
+  done < <(
+    kubectl get "${resource}.v1beta1.messaging.mkurator.dev" -A \
+      -o jsonpath='{range .items[*]}{.metadata.namespace}{"\t"}{.metadata.name}{"\n"}{end}'
+  )
 done
+
+if [ "${failed}" -ne 0 ]; then
+  echo "one or more objects were not rewritten; do not prune storedVersions" >&2
+  exit 1
+fi
 ```
 
 Once every object has been rewritten and a backup confirms no old encoded
