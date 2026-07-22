@@ -139,7 +139,7 @@ properties:
   type:
     default: svrconn
     description: Type is the channel kind to define. svrconn, sdr, and rcvr are reconciled
-      in v1alpha1.
+      in v1beta1.
     enum:
     - svrconn
     - sdr

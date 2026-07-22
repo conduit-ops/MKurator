@@ -170,7 +170,9 @@ var _ = Describe("CRD conversion round-trip", func() {
 		roundTrip := &messagingv1alpha1.Queue{}
 		Expect(conversionK8sClient.Get(ctx, client.ObjectKeyFromObject(alpha), roundTrip)).To(Succeed())
 		Expect(roundTrip.Spec.Attributes).To(HaveKeyWithValue("custom", "keep-me"))
-		Expect(roundTrip.Spec.Attributes).To(HaveKeyWithValue("maxdepth", "5000"))
+		Expect(roundTrip.Spec.Attributes).NotTo(HaveKey("maxdepth"))
+		Expect(roundTrip.Spec.MaxDepth).NotTo(BeNil())
+		Expect(*roundTrip.Spec.MaxDepth).To(Equal(int32(5000)))
 	})
 
 	It("round-trips Topic v1alpha1 attribute folding through v1beta1", func() {

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Assert Helm chart CRDs serve v1alpha1 + v1beta1 with conversion webhook wiring,
-# and match the kustomize-built CRD bundle from config/crd.
+# Assert Helm chart CRDs serve v1alpha1 + v1beta1, store the v1beta1 hub,
+# include conversion webhook wiring, and match config/crd.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -79,10 +79,10 @@ for name in sorted(expected):
 
     alpha = versions["v1alpha1"]
     beta = versions["v1beta1"]
-    if not alpha.get("storage"):
-        raise SystemExit(f"helm-verify-crds: {name} must store v1alpha1")
-    if beta.get("storage"):
-        raise SystemExit(f"helm-verify-crds: {name} must not store v1beta1 yet")
+    if alpha.get("storage"):
+        raise SystemExit(f"helm-verify-crds: {name} must not store v1alpha1")
+    if not beta.get("storage"):
+        raise SystemExit(f"helm-verify-crds: {name} must store v1beta1")
 
     if name not in built_docs:
         raise SystemExit(f"helm-verify-crds: {name} missing from config/crd kustomize build")

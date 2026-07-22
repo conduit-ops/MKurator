@@ -64,8 +64,9 @@ kinds (`QueueManagerConnection`, `Queue`, `Topic`, `Channel`, `ChannelAuthRule`,
 Follow the [safe upgrade order](#safe-upgrade-order) above. For this release the
 critical steps are:
 
-1. **CRDs first** — multi-version CRDs add `v1beta1` (`served: true`) alongside
-   `v1alpha1` (still **storage** until a later release proves hub migration).
+1. **CRDs first** — multi-version CRDs serve `v1beta1` and `v1alpha1`, with
+   `v1beta1` as the storage version. The conversion webhook must already be
+   available because reads of previously stored `v1alpha1` objects now use it.
    Apply `install-crds.yaml` or `charts/mkurator/crds/` with server-side apply.
 2. **Operator second** — the controller image registers a **conversion webhook**
    in addition to validating webhooks. Wait for rollout **and** webhook TLS before
@@ -110,7 +111,7 @@ release** starting with `v0.12.0` ([ADR-0026](adr/0026-v1beta1-graduation-plan.m
 
 | Posture | Version | Meaning |
 |---------|---------|---------|
-| Storage (etcd) | `v1alpha1` | Existing objects stay stored as-is until hub migration is proven in CI |
+| Storage (etcd) | `v1beta1` | New and rewritten objects are stored in the conversion hub |
 | Served (read/write) | `v1alpha1` + `v1beta1` | `kubectl get` may show either version; conversion handles round-trip |
 | Preferred for new YAML | `v1beta1` | Samples in this repo default to `v1beta1` from 8d-4 onward |
 
@@ -118,6 +119,59 @@ release** starting with `v0.12.0` ([ADR-0026](adr/0026-v1beta1-graduation-plan.m
 `apiVersion: messaging.mkurator.dev/v1alpha1` keep reconciling. When ready,
 change the `apiVersion` line (and prefer typed fields — see below); conversion
 folds `spec.attributes` map keys into typed fields where unambiguous.
+
+### Rewrite stored objects after the storage flip
+
+Changing a CRD's storage marker does not rewrite existing etcd records. After
+the CRDs and conversion webhook are healthy, rewrite every object once through
+the `v1beta1` endpoint. Use a storage-version migrator in production, or perform
+an equivalent read/replace for all six resources. Confirm backups first and
+serialize this with GitOps writers so resource-version conflicts are retried.
+
+```sh
+for resource in queuemanagerconnections queues topics channels channelauthrules authorityrecords; do
+  kubectl get "${resource}.v1beta1.messaging.mkurator.dev" -A \
+    -o jsonpath='{range .items[*]}{.metadata.namespace}{"\t"}{.metadata.name}{"\n"}{end}' |
+  while IFS=$'\t' read -r namespace name; do
+    [ -n "${name}" ] || continue
+    kubectl get "${resource}.v1beta1.messaging.mkurator.dev" "${name}" -n "${namespace}" -o yaml |
+      kubectl replace -f -
+  done
+done
+```
+
+Once every object has been rewritten and a backup confirms no old encoded
+objects remain, prune `v1alpha1` from each CRD's status (this does not unserve
+the API version):
+
+```sh
+for crd in queuemanagerconnections queues topics channels channelauthrules authorityrecords; do
+  kubectl patch crd "${crd}.messaging.mkurator.dev" --subresource=status --type=merge \
+    -p '{"status":{"storedVersions":["v1beta1"]}}'
+done
+```
+
+Do not prune `status.storedVersions` before the rewrite completes. Kubernetes
+uses that status as the record of versions that may still exist in etcd.
+
+### Conversion webhook unavailable during migration
+
+After the flip, reading an old stored `v1alpha1` object may fail with a
+conversion-webhook call or TLS error if cert-manager, the webhook Service, or
+the controller is unavailable. This is a hard read failure; MKurator does not
+silently discard fields. Restore cert-manager and the webhook Deployment,
+verify the `webhook-server-cert` is Ready, restart the controller after a stale
+certificate rotation, then retry the read and rewrite. Do not patch
+`storedVersions` to work around webhook downtime.
+
+### Downgrade caveat
+
+Do not downgrade to a release whose CRDs store `v1alpha1` after hub-only
+`v1beta1` fields have been written: down-conversion cannot preserve fields that
+do not exist in the spoke. Restore the pre-upgrade backup with the matching
+operator/CRD bundle instead. A downgrade before hub-only fields are used still
+requires a complete reverse migration and verification; changing only the CRD
+storage marker is insufficient.
 
 Example:
 
